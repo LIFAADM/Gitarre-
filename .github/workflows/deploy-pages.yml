@@ -1,12 +1,13 @@
 name: GitHub Pages (HTTPS-Bereitstellung)
 
 # Baut GuitarCoach mit dem Basis-Pfad /<repo>/ und veröffentlicht dist/ auf GitHub Pages.
-# Erster Lauf: In den Repository-Einstellungen unter "Pages" die Quelle "GitHub Actions" wählen
-# (der Workflow versucht das Aktivieren automatisch). Danach ist die App unter
-# https://<nutzer>.github.io/<repo>/ erreichbar – mit HTTPS, also inklusive Mikrofon.
+# Einmalig: In den Repository-Einstellungen unter "Pages" die Quelle "GitHub Actions" wählen
+# (das Workflow-Token darf Pages nicht selbst aktivieren). Danach über "Run workflow" (beliebiger
+# Branch) oder per Push auf main starten. Die App ist dann unter https://<nutzer>.github.io/<repo>/
+# erreichbar – mit HTTPS, also inklusive Mikrofon.
 on:
   push:
-    branches: [main, 'claude/guitarcoach-mvp-p0ukh3']
+    branches: [main]
   workflow_dispatch:
 
 permissions:

@@ -65,6 +65,7 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 - `npm run build`: erfolgreich (Precache ca. 3,5 MB inkl. alphaTab-Import und Bravura-Notenschrift)
 - `npm run e2e` (Playwright, iPhone-Viewport in Chromium): 16 Tests bestanden – Dashboard, Bibliothek (Test 10), Happy Birthday mit Tempo 50 % und Einzelton (Tests 3/6), Schleife (Test 7), Guitar-Pro-Import (Test 5), Fortschritt nach Neuladen (Test 8), Gitarrenschule, Griffbrett (Test 2), Metronom, Offline-Betrieb (Test 9), Noten-Ansicht, Vereinfachung, Spiel-mit-Start; mit simuliertem Mikrofon (synthetische Gitarrentöne über Chromiums Fake-Audio-Capture): Stimmgerät erkennt A2 = 110 Hz als richtig gestimmt (Test 1), Spiel-mit-Modus erkennt die gespielten leeren Saiten und zählt Treffer (Test 11)
 - GitHub Actions führt dieselbe Pipeline bei jedem Push aus
+- GitHub-Pages-Deployment: Build und SPA-Fallback laufen durch; die automatische Aktivierung von Pages ist am Berechtigungsumfang des Workflow-Tokens gescheitert („Resource not accessible by integration“). Einmalig in den Repository-Einstellungen Pages mit Quelle „GitHub Actions“ aktivieren, dann den Workflow erneut starten.
 
 ## Manuelle Tests, die noch auf einem echten iPhone nötig sind
 

@@ -42,7 +42,9 @@ Für Mikrofonzugriff vom iPhone im lokalen Netz wird **HTTPS** benötigt (Browse
 
 ### HTTPS-Bereitstellung über GitHub Pages (empfohlen fürs iPhone)
 
-Der Workflow `.github/workflows/deploy-pages.yml` baut die App mit dem Basis-Pfad `/<Repository-Name>/` und veröffentlicht sie auf GitHub Pages. Einmalig nötig: In den Repository-Einstellungen unter **Pages** als Quelle **GitHub Actions** wählen (der Workflow versucht das selbst zu aktivieren). Danach ist GuitarCoach unter `https://<nutzer>.github.io/<repository>/` erreichbar, inklusive Mikrofon und Offline-Installation. Der Workflow läuft bei Pushes auf `main` und den Entwicklungs-Branch sowie manuell über „Run workflow“.
+Der Workflow `.github/workflows/deploy-pages.yml` baut die App mit dem Basis-Pfad `/<Repository-Name>/` und veröffentlicht sie auf GitHub Pages.
+
+**Einmalig von Hand nötig** (der Workflow-Token darf Pages nicht selbst aktivieren): Im Repository auf GitHub **Settings → Pages → Build and deployment → Source: „GitHub Actions“** wählen. Danach unter **Actions → „GitHub Pages (HTTPS-Bereitstellung)“ → „Run workflow“** den Branch starten oder einfach erneut pushen. Anschließend ist GuitarCoach unter `https://<nutzer>.github.io/<repository>/` erreichbar, inklusive Mikrofon und Offline-Installation. Für private Repositories setzt GitHub Pages einen kostenpflichtigen Plan voraus; alternativ den Ordner `dist/` auf einen beliebigen HTTPS-Host (Netlify, Vercel, eigener Server) legen.
 
 Eigener Host: `GUITARCOACH_BASE=/unterpfad/ npm run build` setzt den Basis-Pfad; ohne Variable liegt die App unter `/`.
 
