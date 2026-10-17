@@ -44,7 +44,13 @@ Für Mikrofonzugriff vom iPhone im lokalen Netz wird **HTTPS** benötigt (Browse
 
 Der Workflow `.github/workflows/deploy-pages.yml` baut die App mit dem Basis-Pfad `/<Repository-Name>/` und veröffentlicht sie auf GitHub Pages.
 
-**Einmalig von Hand nötig** (der Workflow-Token darf Pages nicht selbst aktivieren): Im Repository auf GitHub **Settings → Pages → Build and deployment → Source: „GitHub Actions“** wählen. Danach unter **Actions → „GitHub Pages (HTTPS-Bereitstellung)“ → „Run workflow“** den Branch starten oder einfach erneut pushen. Anschließend ist GuitarCoach unter `https://<nutzer>.github.io/<repository>/` erreichbar, inklusive Mikrofon und Offline-Installation. Für private Repositories setzt GitHub Pages einen kostenpflichtigen Plan voraus; alternativ den Ordner `dist/` auf einen beliebigen HTTPS-Host (Netlify, Vercel, eigener Server) legen.
+**Einmalig von Hand nötig** (das Workflow-Token darf Pages nicht selbst anlegen):
+
+1. Das Repository muss **öffentlich** sein: Settings → General → Danger Zone → „Change repository visibility“ → Public. Für private Repositories bietet GitHub Pages nur mit einem kostenpflichtigen Plan (GitHub Pro) an; die Pages-Einstellung bleibt sonst gesperrt.
+2. **Settings → Pages → Build and deployment → Source: „GitHub Actions“** wählen.
+3. Unter **Actions → „GitHub Pages (HTTPS-Bereitstellung)“ → „Run workflow“** den gewünschten Branch starten (oder auf `main` pushen).
+
+Anschließend ist GuitarCoach unter `https://<nutzer>.github.io/<repository>/` erreichbar, inklusive Mikrofon und Offline-Installation. Wer das Repository privat lassen möchte, legt stattdessen den Ordner `dist/` auf einen beliebigen HTTPS-Host (Netlify, Cloudflare Pages, Vercel, eigener Server).
 
 Eigener Host: `GUITARCOACH_BASE=/unterpfad/ npm run build` setzt den Basis-Pfad; ohne Variable liegt die App unter `/`.
 

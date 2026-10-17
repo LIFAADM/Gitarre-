@@ -1,10 +1,13 @@
 name: GitHub Pages (HTTPS-Bereitstellung)
 
 # Baut GuitarCoach mit dem Basis-Pfad /<repo>/ und veröffentlicht dist/ auf GitHub Pages.
-# Einmalig: In den Repository-Einstellungen unter "Pages" die Quelle "GitHub Actions" wählen
-# (das Workflow-Token darf Pages nicht selbst aktivieren). Danach über "Run workflow" (beliebiger
-# Branch) oder per Push auf main starten. Die App ist dann unter https://<nutzer>.github.io/<repo>/
-# erreichbar – mit HTTPS, also inklusive Mikrofon.
+# Einmalig von Hand nötig:
+#   1. Das Repository muss öffentlich sein (oder das Konto einen Bezahltarif haben) – für private
+#      Repositories bietet GitHub Free kein Pages an.
+#   2. Settings → Pages → Build and deployment → Source: "GitHub Actions" wählen. Das Standard-Token
+#      des Workflows (GITHUB_TOKEN) darf Pages nicht selbst anlegen, deshalb kein "enablement".
+# Danach über "Run workflow" (beliebiger Branch) oder per Push auf main starten. Die App ist dann
+# unter https://<nutzer>.github.io/<repo>/ erreichbar – mit HTTPS, also inklusive Mikrofon.
 on:
   push:
     branches: [main]
@@ -36,8 +39,6 @@ jobs:
       - name: SPA-Fallback für tiefe Links
         run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
