@@ -6,7 +6,7 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 
 - 🎸 **Stimmgerät** mit dem iPhone-Mikrofon (YIN-Tonerkennung, Cent-Anzeige, Nadel, Saitenerkennung, Referenztöne)
 - 🎼 **Interaktiver Tab-Player** mit echter Klangwiedergabe (eigener Nylonsaiten-Synthesizer), Tempo 25–150 %, Abschnittsschleife, Einzeltonmodus, Metronom mit Einzähler, Griffbrett-Anzeige der aktuellen Note, umschaltbare Noten-Ansicht (klassische Notenschrift + Tab) und automatische Vereinfachung zu einer Übungsstimme
-- 📚 **Gitarrenschule** mit 7 Kapiteln und 42 Lektionen (Erklärung, Übung, Hörbeispiel, Griffbrett, Selbstkontrolle, Speicherung)
+- 📚 **Gitarrenschule** mit 7 Kapiteln und 44 Lektionen (Erklärung, Übung, Hörbeispiel, Griffbrett, Selbstkontrolle, Speicherung)
 - 🎵 **Songbibliothek** mit allen Wunsch-Songs: sechs gemeinfreie Lieder sofort spielbar (eigene Arrangements in mehreren Lernversionen), geschützte Songs mit Importstatus und eigenen Vorübungen
 - 📥 **Import** von Guitar Pro 3–8, MusicXML, alphaTex, MIDI und GuitarCoach-JSON – lokal verarbeitet, offline nutzbar
 - 👂 **„Spiel mit – GuitarCoach hört zu“**: Mikrofon-Lernkontrolle Note für Note (grün/gelb/rot, Toleranz einstellbar)
