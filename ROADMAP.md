@@ -6,19 +6,19 @@ Siehe STATUS.md.
 ## Nächste sinnvolle Schritte
 
 ### Kurzfristig
-1. **Manuelle iPhone-Tests** (Safari, Home-Bildschirm): Mikrofon-Latenz, Lautstärke des Synths, Safe Areas im Querformat, Verhalten bei Anruf/Hintergrund (siehe STATUS.md, Checkliste).
+1. **Manuelle iPhone-Tests** (Safari, Home-Bildschirm): echte Gitarre vor dem Mikrofon, Lautstärke des Synths, Safe Areas im Querformat, Verhalten bei Anruf/Hintergrund (siehe STATUS.md, Checkliste). Die App steht dafür über GitHub Pages per HTTPS bereit.
 2. **Noten-Ansicht ausbauen**: Abspielmarke in der alphaTab-Partitur (Beat-Cursor über `tickLookup`), Antippen von Noten, Worker-Rendering für sehr lange Stücke.
-3. **Text-Tab-Import (ASCII)** mit Hinweis auf fehlende Notenlängen und manueller Dauer-Zuweisung im Editor.
-4. **Vereinfachung erweitern**: Wahl der Stimme (Melodie/Bass), Tempo-Vorschlag, automatische Zerlegung in Übungsabschnitte mit Schleifen-Vorgaben.
+3. **Vereinfachung erweitern**: Wahl der Stimme (Melodie/Bass), Tempo-Vorschlag, automatische Zerlegung in Übungsabschnitte mit Schleifen-Vorgaben.
+4. **Mitspielmodus verfeinern**: Wellenform-Anzeige, Tap-Tempo zum Setzen mehrerer Marken in einem Durchlauf, Marken aus Importdateien mit Zeitangaben übernehmen.
 
 ### Mittelfristig
-5. **Audiodatei-Import und Mitspielmodus** (MP3/WAV/M4A): Zuordnung zum Song, manuelle Zeitmarken (Takt ↔ Sekunde), Abschnittswiederholung mit Original.
-6. **Mehrspurige Wiedergabe** (Begleitspuren leiser mitspielen, Solo/Mute je Spur).
+5. **Text-Tab-Import**: Mehrstimmigkeit, Rhythmuszeilen über der Tab auswerten, Dauer-Korrektur direkt in der Vorschau.
+6. **Mehrspurigkeit**: Solo/Mute je Spur, Spurlautstärken speichern, Begleitspuren im Mitspielmodus mit Original mischen.
 7. **Erweiterte Lernkontrolle**: Rhythmus-Bewertung (zu früh/zu spät relativ zum Metronom), Akkorderkennung (Mehrton-Analyse), Verlauf der Trefferquote pro Takt („Heatmap“).
 8. **Lernplan-Feinschliff**: Wochenplan, Erinnerungen (Web-Push erst mit Capacitor), adaptive Vorschläge aus Fehlerstatistik.
 9. **Weitere Lernstufen und Inhalte**: Kapitel zu Akkordbegleitung, Barré, Lagenwechsel; mehr gemeinfreie Lieder (Volkslieder, Klassik-Etüden).
 
 ### Langfristig
-10. **Capacitor-App** (iOS): natives Mikrofon-Handling, Hintergrundaudio-Policies, Datei-Import über die Dateien-App, App-Store-Vertrieb (Apple-Entwicklerkonto nötig).
+10. **Capacitor-App** (iOS): Xcode-Build aus der vorbereiteten Konfiguration, natives Mikrofon-Handling, Hintergrundaudio-Policies, Datei-Import über die Dateien-App, App-Store-Vertrieb (Apple-Entwicklerkonto nötig).
 11. **Performance**: Routen-Splitting (alphaTab bereits lazy), virtuelles Rendering sehr langer Tabs, Web Worker für YIN bei Bedarf.
 12. **Offizielle Anbieter-Integrationen** (nur mit Berechtigung und API), Cloud-Sync optional und verschlüsselt.

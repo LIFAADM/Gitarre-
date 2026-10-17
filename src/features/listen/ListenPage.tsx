@@ -100,7 +100,8 @@ function ListenSession({ target }: { target: Target }) {
   const tabRef = useRef<TabViewHandle | null>(null);
   const lastVerdictAt = useRef(0);
 
-  const detection = usePitchDetection({ enabled: running, sensitivity: settings.tunerSensitivity, a4Hz: settings.a4Hz, minStableMs: settings.listenMinStableMs });
+  // Der Hook startet nicht automatisch; Start/Stopp erfolgen explizit über die Schaltflächen.
+  const detection = usePitchDetection({ enabled: true, sensitivity: settings.tunerSensitivity, a4Hz: settings.a4Hz, minStableMs: settings.listenMinStableMs });
   const summary = summarizeResults(results);
   const detailsRef = useRef({ notesTotal: 0, notesCorrect: 0 });
   useEffect(() => {
@@ -112,6 +113,7 @@ function ListenSession({ target }: { target: Target }) {
 
   const finish = useCallback(async () => {
     setRunning(false);
+    detection.stop();
     setFinished(true);
     const s = summarizeResults(results);
     await flush();
@@ -121,7 +123,7 @@ function ListenSession({ target }: { target: Target }) {
       const existing = await getDb().lessonProgress.get(lessonId);
       if (existing) await getDb().lessonProgress.update(lessonId, { bestAccuracy: Math.max(existing.bestAccuracy ?? 0, s.accuracy) });
     }
-  }, [results, flush, target.songId, lessonId]);
+  }, [results, flush, target.songId, lessonId, detection]);
 
   const goTo = useCallback(
     (next: number) => {
@@ -191,7 +193,12 @@ function ListenSession({ target }: { target: Target }) {
     await unlockAudio();
     setFinished(false);
     setRunning(true);
-    detection.start();
+    await detection.start();
+  };
+
+  const pauseListening = (): void => {
+    setRunning(false);
+    detection.stop();
   };
 
   const restart = (): void => {
@@ -303,7 +310,7 @@ function ListenSession({ target }: { target: Target }) {
                 <Play size={30} className="ml-1" />
               </button>
             ) : (
-              <button type="button" onClick={() => setRunning(false)} aria-label="Analyse pausieren" className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-3 text-text transition active:scale-95">
+              <button type="button" onClick={pauseListening} aria-label="Analyse pausieren" className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-3 text-text transition active:scale-95">
                 <Pause size={30} />
               </button>
             )}

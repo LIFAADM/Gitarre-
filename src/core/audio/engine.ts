@@ -31,11 +31,12 @@ export function getEngine(): AudioEngine {
         synth.noteOn(ev.midi, time, {
           velocity: ev.velocity,
           string: ev.string,
+          channel: ev.trackIndex,
           techniques: ev.techniques,
           maxDurationSec: letRing ? undefined : Math.max(0.35, scaledDuration + 0.15),
         });
       },
-      damp: (time) => synth.dampAll(time, 0.03),
+      damp: (time, channel) => (channel === undefined ? synth.dampAll(time, 0.03) : synth.dampChannel(channel, time, 0.03)),
       click: (time, accent) => playClick(ctx, time, accent, clickVolume),
       stopAll: () => synth.panic(),
     },

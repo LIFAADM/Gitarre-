@@ -8,7 +8,9 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 - 🎼 **Interaktiver Tab-Player** mit echter Klangwiedergabe (eigener Nylonsaiten-Synthesizer), Tempo 25–150 %, Abschnittsschleife, Einzeltonmodus, Metronom mit Einzähler, Griffbrett-Anzeige der aktuellen Note, umschaltbare Noten-Ansicht (klassische Notenschrift + Tab) und automatische Vereinfachung zu einer Übungsstimme
 - 📚 **Gitarrenschule** mit 7 Kapiteln und 44 Lektionen (Erklärung, Übung, Hörbeispiel, Griffbrett, Selbstkontrolle, Speicherung)
 - 🎵 **Songbibliothek** mit allen Wunsch-Songs: sechs gemeinfreie Lieder sofort spielbar (eigene Arrangements in mehreren Lernversionen), geschützte Songs mit Importstatus und eigenen Vorübungen
-- 📥 **Import** von Guitar Pro 3–8, MusicXML, alphaTex, MIDI und GuitarCoach-JSON – lokal verarbeitet, offline nutzbar
+- 📥 **Import** von Guitar Pro 3–8, MusicXML, alphaTex, MIDI, ASCII-Text-Tabs und GuitarCoach-JSON – lokal verarbeitet, offline nutzbar
+- 🎧 **Mitspielmodus** mit eigener Aufnahme (MP3/WAV/M4A): Zeitmarken setzen, Tabs laufen synchron, Abschnitte wiederholen, Tempo reduzieren
+- 🎼 **Mehrspurige Wiedergabe**: Begleitspuren eines Imports leiser mitspielen lassen
 - 👂 **„Spiel mit – GuitarCoach hört zu“**: Mikrofon-Lernkontrolle Note für Note (grün/gelb/rot, Toleranz einstellbar)
 - ✍️ **Tab-Editor** für eigene Melodien (Griffbrett-Eingabe, Notenlängen, Pausen, Export)
 - 📈 **Dashboard, Lernplan, Statistiken, Lernziele, Erfolge** – alles aus echten Übungsdaten
@@ -23,7 +25,9 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 | Import | alphaTab 1.8 (Guitar Pro, MusicXML, alphaTex), eigener MIDI-Parser, eigenes JSON-Format |
 | Speicher | IndexedDB via Dexie 4 (LocalStorage nur für Kleinstwerte) |
 | Offline | vite-plugin-pwa / Workbox (Precache aller App-Dateien inkl. Beispieldateien) |
-| Tests | Vitest + Testing Library (153 Unit-/Komponententests), Playwright (14 End-to-End-Smoke-Tests) |
+| Tests | Vitest + Testing Library (162 Unit-/Komponententests), Playwright (16 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
+| CI/Deployment | GitHub Actions: Typprüfung, Lint, Tests, Build, E2E; GitHub-Pages-Deployment mit HTTPS |
+| Native App | Capacitor-Konfiguration vorbereitet (iOS) |
 
 ## Installation und Start
 
@@ -34,7 +38,13 @@ npm install
 npm run dev          # Entwicklungsserver (http://localhost:5173, im LAN per --host erreichbar)
 ```
 
-Für Mikrofonzugriff vom iPhone im lokalen Netz wird **HTTPS** benötigt (Browser-Vorgabe). Optionen: `vite --host` hinter einem Reverse-Proxy mit Zertifikat, ein Tunnel (z. B. Cloudflare Tunnel, ngrok) oder ein Deployment auf einem HTTPS-Host (GitHub Pages, Netlify, Vercel, eigener Server). Auf dem Entwicklungsrechner selbst reicht `localhost`.
+Für Mikrofonzugriff vom iPhone im lokalen Netz wird **HTTPS** benötigt (Browser-Vorgabe). Auf dem Entwicklungsrechner selbst reicht `localhost`.
+
+### HTTPS-Bereitstellung über GitHub Pages (empfohlen fürs iPhone)
+
+Der Workflow `.github/workflows/deploy-pages.yml` baut die App mit dem Basis-Pfad `/<Repository-Name>/` und veröffentlicht sie auf GitHub Pages. Einmalig nötig: In den Repository-Einstellungen unter **Pages** als Quelle **GitHub Actions** wählen (der Workflow versucht das selbst zu aktivieren). Danach ist GuitarCoach unter `https://<nutzer>.github.io/<repository>/` erreichbar, inklusive Mikrofon und Offline-Installation. Der Workflow läuft bei Pushes auf `main` und den Entwicklungs-Branch sowie manuell über „Run workflow“.
+
+Eigener Host: `GUITARCOACH_BASE=/unterpfad/ npm run build` setzt den Basis-Pfad; ohne Variable liegt die App unter `/`.
 
 ## Produktions-Build
 
@@ -52,9 +62,11 @@ npm run typecheck    # TypeScript
 npm run lint         # ESLint (inkl. React-Hooks-Regeln)
 npm test             # Vitest (Unit/Komponenten)
 npm run build        # Produktions-Build
-PW_CHROMIUM_PATH=/pfad/zu/chromium npm run e2e   # Playwright-Smoke-Tests gegen den Build (ohne Variable nutzt Playwright seinen eigenen Chromium)
+PW_CHROMIUM_PATH=/pfad/zu/chromium npm run e2e   # Playwright-Tests gegen den Build (ohne Variable nutzt Playwright seinen eigenen Chromium)
 npm run check        # typecheck + lint + test + build
 ```
+
+Die Playwright-Projekte `mic-tuner` und `mic-listen` speisen über Chromiums Fake-Mikrofon synthetische Gitarrentöne (`e2e/fixtures/*.wav`, erzeugt mit `npm run audio:fixtures`) in die echte Analysekette ein: Das Stimmgerät muss A2 = 110 Hz als „richtig gestimmt“ erkennen, der Spiel-mit-Modus muss die gespielten leeren Saiten zählen.
 
 Getestete Bereiche: Frequenz↔Note und Cent, Stimmung/Saitenerkennung, Bund-/Saitenpositionen, Notendauern und Timing, Tab-Notation, Abspielplan (Wiederholungen, Tempo), Player-Timing (50 %, Schleife, Einzähler, Einzelton), Karplus-Strong-Tonhöhe, YIN-Tonerkennung, Pitch-Tracker, Import (GP7, MusicXML, alphaTex, MIDI, JSON), alphaTex-Export (Rundreise durch alphaTab), automatische Vereinfachung, Speicherung/Wiederherstellung, Fortschrittsberechnung, Statistiken/Empfehlungen/Erfolge, Lektionsinhalte, Editor-Modell, UI-Komponenten (Tuner, Griffbrett, Metronom).
 
@@ -82,7 +94,18 @@ Details zu den Entscheidungen: `ARCHITECTURE.md`. Stand der Umsetzung: `STATUS.m
 5. Im Hintergrund (Anruf, App-Wechsel) pausiert die Wiedergabe automatisch; das Mikrofon wird freigegeben.
 6. Speichergrenzen: Safari kann Website-Daten nach längerer Nichtnutzung löschen – unter *Einstellungen → Daten & Sicherung* regelmäßig eine JSON-Sicherung exportieren. Im privaten Modus wird nichts dauerhaft gespeichert.
 
-Später ist eine Auslieferung als native App mit Capacitor vorgesehen; die Architektur (reines Web, keine Server-Abhängigkeit) ist darauf vorbereitet.
+### Native iPhone-App mit Capacitor (vorbereitet)
+
+`capacitor.config.ts`, `@capacitor/core`, `@capacitor/cli` und `@capacitor/ios` sind eingerichtet. Auf einem Mac mit Xcode:
+
+```bash
+npm run build
+npx cap add ios          # einmalig: erzeugt das Xcode-Projekt unter ios/
+npm run cap:sync         # Web-Build in die App kopieren
+npm run cap:ios          # Xcode öffnen, auf dem iPhone ausführen
+```
+
+In `ios/App/App/Info.plist` muss `NSMicrophoneUsageDescription` (z. B. „GuitarCoach analysiert dein Gitarrenspiel für Stimmgerät und Lernkontrolle.“) ergänzt werden. Das Schema `https` in der Konfiguration sorgt dafür, dass Mikrofon und Service Worker im WKWebView funktionieren. Die native Paketierung wurde in dieser Umgebung (Linux, ohne Xcode) nicht ausgeführt; für den App-Store-Vertrieb ist ein Apple-Entwicklerkonto nötig, zum Testen auf dem eigenen Gerät reicht ein kostenloses Apple-Konto.
 
 ## Unterstützte Tab-Dateiformate
 
@@ -95,7 +118,8 @@ Später ist eine Auslieferung als native App mit Capacitor vorgesehen; die Archi
 | alphaTex | .atex .alphatex .tex | getestet |
 | MIDI (Format 0/1) | .mid .midi | getestet; Saiten/Bünde werden automatisch berechnet, Dauern auf 16tel gerundet |
 | GuitarCoach-JSON | .gcjson .json | getestet (Export/Import, Datensicherung) |
-| ASCII-Text-Tabs | .txt | noch nicht (fehlende Notenlängen – siehe Roadmap) |
+| ASCII-Text-Tabs | .txt .tab | getestet; Notenlängen werden aus den Abständen geschätzt oder fest angenommen, deutlich gekennzeichnet und im Tab-Editor korrigierbar |
+| Audiodateien (Mitspielmodus) | .mp3 .wav .m4a | gespeichert und per Zeitmarken manuell synchronisiert |
 
 Nach dem Import landen Songs in der Bibliothek, werden lokal gespeichert und sind offline im Player nutzbar (ansehen, anhören, verlangsamen, Abschnitte wiederholen, Griffbrett, Spiel-mit-Kontrolle).
 

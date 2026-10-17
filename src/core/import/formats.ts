@@ -1,6 +1,6 @@
 /** Erkennung von Tab-Dateiformaten anhand von Dateiendung und Magic Bytes. */
 
-export type ImportFormat = 'gp3' | 'gp4' | 'gp5' | 'gpx' | 'gp7' | 'musicxml' | 'mxl' | 'alphatex' | 'midi' | 'gcjson' | 'unknown';
+export type ImportFormat = 'gp3' | 'gp4' | 'gp5' | 'gpx' | 'gp7' | 'musicxml' | 'mxl' | 'alphatex' | 'midi' | 'gcjson' | 'texttab' | 'unknown';
 
 export interface FormatInfo {
   id: ImportFormat;
@@ -22,6 +22,7 @@ export const FORMAT_INFOS: FormatInfo[] = [
   { id: 'alphatex', label: 'alphaTex', extensions: ['.atex', '.alphatex', '.tex'], supported: true },
   { id: 'midi', label: 'MIDI', extensions: ['.mid', '.midi'], supported: true, note: 'Saiten und Bünde werden automatisch berechnet und können abweichen.' },
   { id: 'gcjson', label: 'GuitarCoach (JSON)', extensions: ['.gcjson', '.json'], supported: true },
+  { id: 'texttab', label: 'Text-Tab (ASCII)', extensions: ['.txt', '.tab'], supported: true, note: 'Ohne Notenlängen – Dauern werden geschätzt und können im Tab-Editor korrigiert werden.' },
 ];
 
 export const ACCEPTED_EXTENSIONS = FORMAT_INFOS.flatMap((f) => f.extensions);
@@ -29,6 +30,8 @@ export const ACCEPTED_EXTENSIONS = FORMAT_INFOS.flatMap((f) => f.extensions);
 export function formatLabel(format: ImportFormat): string {
   return FORMAT_INFOS.find((f) => f.id === format)?.label ?? 'Unbekannt';
 }
+
+import { looksLikeTextTab } from './textTabImport';
 
 function startsWith(bytes: Uint8Array, text: string, offset = 0): boolean {
   if (bytes.length < offset + text.length) return false;
@@ -68,6 +71,7 @@ export function detectFormat(fileName: string, bytes: Uint8Array): ImportFormat 
     if (ext === '.json' || ext === '.gcjson') return 'gcjson';
   }
   if (ext === '.atex' || ext === '.alphatex' || ext === '.tex') return 'alphatex';
+  if (!bytes.subarray(0, 4096).some((b) => b === 0) && looksLikeTextTab(headText(bytes, 200000))) return 'texttab';
   if (ext === '.gp3') return 'gp3';
   if (ext === '.gp4') return 'gp4';
   if (ext === '.gp5') return 'gp5';

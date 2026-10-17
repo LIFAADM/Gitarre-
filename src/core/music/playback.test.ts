@@ -53,3 +53,23 @@ describe('Abspielplan', () => {
     expect(plan.totalSec).toBeCloseTo(4, 9);
   });
 });
+
+describe('Mehrspurige Wiedergabe', () => {
+  it('mischt Begleitspuren leiser dazu, ohne Darstellung und Einzelton-Modus zu verändern', async () => {
+    const { buildMixPlan } = await import('./playback');
+    const main = parseTabNotation('0.1.4 1.2.4 3.2.4 0.1.4 |', { tempo: 60 });
+    const bass = parseTabNotation('0.6.2 0.5.2 |', { tempo: 60 });
+    const score = { ...main, tracks: [main.tracks[0]!, { ...bass.tracks[0]!, id: 'track-2', name: 'Bass' }] };
+    const plan = buildMixPlan(score, 0, [{ trackIndex: 1, gain: 0.5 }]);
+    const notes = plan.events.filter((e) => e.kind === 'note');
+    expect(notes).toHaveLength(6);
+    expect(plan.beats.every((b) => b.instanceIndex >= 0)).toBe(true);
+    expect(plan.beats).toHaveLength(4);
+    const bassNotes = notes.filter((n) => n.trackIndex === 1);
+    expect(bassNotes).toHaveLength(2);
+    expect(bassNotes[0]!.velocity).toBeCloseTo(0.425, 6);
+    expect(bassNotes.every((n) => n.beatRef === -1)).toBe(true);
+    expect(plan.accompanimentTracks).toEqual([1]);
+    expect(buildMixPlan(score, 0, []).accompanimentTracks).toBeUndefined();
+  });
+});

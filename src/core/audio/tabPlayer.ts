@@ -9,7 +9,8 @@ import type { BeatRef, NoteEvent, PlaybackPlan } from '../music/playback';
 
 export interface PlayerSink {
   noteOn(event: NoteEvent, time: number, scaledDurationSec: number): void;
-  damp(time: number): void;
+  /** Dämpft klingende Töne (optional nur die einer Spur/eines Kanals). */
+  damp(time: number, channel?: number): void;
   click(time: number, accent: boolean): void;
   stopAll(): void;
 }
@@ -431,7 +432,7 @@ export class TabPlayer {
         if (evOk && ev.sec <= nextSec + 1e-9) {
           const t = timeOf(ev.sec);
           if (ev.kind === 'note') this.sink.noteOn(ev, t, ev.durationSec / this.tempoFactor);
-          else if (!this.multiVoice) this.sink.damp(t);
+          else if (!this.multiVoice) this.sink.damp(t, this.plan.accompanimentTracks?.length ? this.plan.trackIndex : undefined);
           this.nextEventIdx++;
         }
         if (metroOk && metro.sec <= nextSec + 1e-9) {

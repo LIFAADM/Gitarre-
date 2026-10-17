@@ -15,12 +15,15 @@ export interface NoteOnOptions {
   techniques?: Technique[];
   /** Maximale Klingdauer in Sekunden (danach Ausblenden). */
   maxDurationSec?: number;
+  /** Kanal (z. B. Spur-Index): Dämpfung pro Saite wirkt nur innerhalb eines Kanals. */
+  channel?: number;
 }
 
 interface Voice {
   source: AudioBufferSourceNode;
   gain: GainNode;
   string: number | null;
+  channel: number;
   startTime: number;
   stopped: boolean;
 }
@@ -34,7 +37,7 @@ export class GuitarSynth {
   private readonly cacheOrder: number[] = [];
   private deadBuffer: AudioBuffer | null = null;
   private readonly voices = new Set<Voice>();
-  private readonly lastVoiceByString = new Map<number, Voice>();
+  private readonly lastVoiceByString = new Map<string, Voice>();
 
   constructor(ctx: AudioContext) {
     this.ctx = ctx;
@@ -100,7 +103,8 @@ export class GuitarSynth {
   noteOn(midi: number, when: number, options: NoteOnOptions = {}): void {
     const techniques = options.techniques ?? [];
     const t = Math.max(when, this.ctx.currentTime);
-    if (options.string !== undefined) this.dampString(options.string, t);
+    const channel = options.channel ?? 0;
+    if (options.string !== undefined) this.dampString(options.string, t, channel);
 
     const isDead = techniques.includes('dead');
     const buffer = isDead ? this.deadNoteBuffer() : this.bufferForMidi(midi);
@@ -124,9 +128,9 @@ export class GuitarSynth {
     source.connect(gain);
     gain.connect(this.output);
     source.start(t);
-    const voice: Voice = { source, gain, string: options.string ?? null, startTime: t, stopped: false };
+    const voice: Voice = { source, gain, string: options.string ?? null, channel, startTime: t, stopped: false };
     this.voices.add(voice);
-    if (voice.string !== null) this.lastVoiceByString.set(voice.string, voice);
+    if (voice.string !== null) this.lastVoiceByString.set(`${channel}:${voice.string}`, voice);
     source.onended = () => {
       voice.stopped = true;
       this.voices.delete(voice);
@@ -136,9 +140,14 @@ export class GuitarSynth {
   }
 
   /** Dämpft den aktuell klingenden Ton einer Saite (Fade 25 ms). */
-  dampString(string: number, when: number): void {
-    const voice = this.lastVoiceByString.get(string);
+  dampString(string: number, when: number, channel = 0): void {
+    const voice = this.lastVoiceByString.get(`${channel}:${string}`);
     if (voice && !voice.stopped) this.fadeVoice(voice, when, 0.02);
+  }
+
+  /** Dämpft alle Töne eines Kanals (z. B. bei Pausen der Hauptspur). */
+  dampChannel(channel: number, when: number = this.ctx.currentTime, fadeSeconds = 0.03): void {
+    for (const voice of this.voices) if (!voice.stopped && voice.channel === channel) this.fadeVoice(voice, when, fadeSeconds);
   }
 
   /** Dämpft alle klingenden Töne (z. B. bei Pausen oder Stopp). */

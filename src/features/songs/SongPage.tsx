@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Download, Dumbbell, Heart, Info, Sparkles, Trash, Upload } from 'lucide-react';
+import { AudioLines, Download, Dumbbell, Heart, Info, PencilLine, Sparkles, Trash, Upload } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Badge, Button, Card, EmptyState, IconButton, PageHeader, PressableCard, ProgressBar, Sheet, useToast } from '@/components/ui';
 import { getExercise } from '@/core/content/exercises';
@@ -161,6 +161,20 @@ export function SongPage() {
           />
         )}
 
+        {selected && (
+          <PressableCard padding="sm" onClick={() => navigate(`/songs/${song.id}/mitspielen`)}>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold">
+                <AudioLines size={20} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">Mit eigener Aufnahme mitspielen</span>
+                <span className="block text-xs text-muted">MP3/WAV/M4A zuordnen, Zeitmarken setzen, Tabs laufen synchron</span>
+              </span>
+            </div>
+          </PressableCard>
+        )}
+
         {exercises.length > 0 && (
           <Card>
             <h2 className="flex items-center gap-2 text-base font-bold">
@@ -241,6 +255,11 @@ export function SongPage() {
           {sorted.length > 0 && (
             <Button variant="secondary" icon={<Download size={18} />} onClick={exportSong}>
               Als GuitarCoach-Datei exportieren
+            </Button>
+          )}
+          {selected && selected.kind !== 'arrangement' && (
+            <Button variant="secondary" icon={<PencilLine size={18} />} onClick={() => navigate(`/werkzeuge/editor/${selected.id}`)}>
+              Version „{selected.label}“ im Tab-Editor bearbeiten
             </Button>
           )}
           {selected && selected.kind !== 'simplified' && (

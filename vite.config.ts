@@ -9,6 +9,14 @@ import { readFileSync } from 'node:fs';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
+/** Basis-Pfad (z. B. "/Gitarre-/" für GitHub Pages); Standard "/" für eigene Hosts und Capacitor. */
+function resolveBase(): string {
+  const raw = (process.env.GUITARCOACH_BASE ?? '/').trim();
+  if (!raw || raw === '/') return '/';
+  return `/${raw.replace(/^\/+|\/+$/g, '')}/`;
+}
+const base = resolveBase();
+
 /**
  * GuitarCoach – Vite-Konfiguration
  *
@@ -18,6 +26,7 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
  * - Vitest (jsdom) für Unit-/Komponententests
  */
 export default defineConfig({
+  base,
   plugins: [
     react(),
     tailwindcss(),
@@ -26,24 +35,24 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg', 'samples/*'],
       manifest: {
-        id: '/',
+        id: base,
         name: 'GuitarCoach – Gitarre lernen',
         short_name: 'GuitarCoach',
         description:
           'Persönliche Gitarren-Lernapp: Stimmgerät, Griffbrett, Tab-Player, Gitarrenschule und Songbibliothek – komplett offline.',
         lang: 'de',
         dir: 'ltr',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         orientation: 'any',
         background_color: '#161618',
         theme_color: '#161618',
         categories: ['education', 'music'],
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: `${base}icons/icon-192.png`, sizes: '192x192', type: 'image/png' },
+          { src: `${base}icons/icon-512.png`, sizes: '512x512', type: 'image/png' },
+          { src: `${base}icons/icon-maskable-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -52,7 +61,7 @@ export default defineConfig({
         // Worker/Worklet und Notenschrift von alphaTab werden erst mit der Partitur-Ansicht benötigt (Import läuft im Hauptthread).
         globIgnores: ['**/soundfont/**', '**/*.map', '**/font/*.svg', '**/font/*.eot', '**/font/*.txt', '**/alphaTab.worker*', '**/alphaTab.worklet*'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,

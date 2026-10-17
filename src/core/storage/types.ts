@@ -160,6 +160,22 @@ export interface GoalRecord {
   linkedLessonId?: string;
 }
 
+/** Zuordnung einer eigenen Audiodatei zu einem Song inkl. manueller Zeitmarken. */
+export interface AudioSyncRecord {
+  id: string;
+  songId: string;
+  fileId: string;
+  fileName: string;
+  sizeBytes: number;
+  /** Zeitmarken: Takt-Instanz (0-basiert) beginnt bei Sekunde `sec` der Aufnahme. */
+  markers: Array<{ instanceIndex: number; sec: number }>;
+  playbackRate: number;
+  versionId?: string;
+  durationSec?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface MetaRecord {
   key: string;
   value: unknown;

@@ -14,6 +14,7 @@ import { AddSongPage } from '@/features/songs/AddSongPage';
 import { PracticePage } from '@/features/practice/PracticePage';
 import { ExercisePage } from '@/features/practice/ExercisePage';
 import { ListenPage } from '@/features/listen/ListenPage';
+import { PlayalongPage } from '@/features/playalong/PlayalongPage';
 import { ToolsPage } from '@/features/tools/ToolsPage';
 import { TunerPage } from '@/features/tuner/TunerPage';
 import { FretboardPage } from '@/features/fretboard/FretboardPage';
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="songs/neu" element={<AddSongPage />} />
           <Route path="songs/:songId" element={<SongPage />} />
           <Route path="songs/:songId/spiel-mit" element={<ListenPage />} />
+          <Route path="songs/:songId/mitspielen" element={<PlayalongPage />} />
           <Route path="ueben" element={<PracticePage />} />
           <Route path="ueben/uebung/:exerciseId" element={<ExercisePage />} />
           <Route path="ueben/uebung/:exerciseId/spiel-mit" element={<ListenPage />} />

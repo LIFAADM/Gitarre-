@@ -121,11 +121,12 @@ export class SongRepository {
     }
   }
 
-  /** Löscht einen Song samt Versionen, Importdateien und Fortschritt. */
+  /** Löscht einen Song samt Versionen, Importdateien, Audio und Fortschritt. */
   async delete(id: string): Promise<void> {
-    await this.db.transaction('rw', [this.db.songs, this.db.songVersions, this.db.importFiles, this.db.songProgress], async () => {
+    await this.db.transaction('rw', [this.db.songs, this.db.songVersions, this.db.importFiles, this.db.songProgress, this.db.audioSyncs], async () => {
       await this.db.songVersions.where('songId').equals(id).delete();
       await this.db.importFiles.where('songId').equals(id).delete();
+      await this.db.audioSyncs.where('songId').equals(id).delete();
       await this.db.songProgress.delete(id);
       await this.db.songs.delete(id);
     });

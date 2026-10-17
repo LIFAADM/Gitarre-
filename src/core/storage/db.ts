@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type {
   AchievementRecord,
+  AudioSyncRecord,
   GoalRecord,
   ImportFileRecord,
   LessonProgressRecord,
@@ -27,6 +28,7 @@ export class GuitarCoachDB extends Dexie {
   achievements!: EntityTable<AchievementRecord, 'id'>;
   goals!: EntityTable<GoalRecord, 'id'>;
   meta!: EntityTable<MetaRecord, 'key'>;
+  audioSyncs!: EntityTable<AudioSyncRecord, 'id'>;
 
   constructor(name = 'guitarcoach') {
     super(name);
@@ -41,6 +43,10 @@ export class GuitarCoachDB extends Dexie {
       achievements: 'id, unlockedAt',
       goals: 'id, group, order, done',
       meta: 'key',
+    });
+    // v2: Audiodateien mit manuellen Zeitmarken (Mitspielmodus)
+    this.version(2).stores({
+      audioSyncs: 'id, songId, fileId',
     });
   }
 }

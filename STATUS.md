@@ -16,7 +16,10 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 | Vereinfachung | „Vereinfachte Übungsversion erzeugen“ für jede Version: monophone Melodiestimme (höchster Ton), ohne Spieltechniken, Sechzehntel → Achtel, tiefe Lage bevorzugt; als „Vereinfacht“ gekennzeichnet und als eigene Version gespeichert |
 | Klang | Eigener Karplus-Strong-Nylonsaiten-Synth (getestet auf exakte Tonhöhe), saitenweise Dämpfung, Pausen dämpfen, Palm Mute/Staccato/Dead Note, Tiefpass/Körperresonanz/Kompressor |
 | Songbibliothek | 30 Wunsch-Songs vorangelegt; 6 gemeinfreie Lieder mit 14 spielbaren Versionen (Anfänger/Leicht/Mittel mit unterschiedlichen Notendaten); 24 geschützte Songs mit Status „Tab-Datei nötig“, Originaltempo, Schwierigkeit, Genre, Vorübungen; Suche, Filter, Favoriten, Fortschritt; eigene Songs anlegen |
-| Import | Guitar Pro 3–8, MusicXML (.xml/.musicxml/.mxl), alphaTex, MIDI, GuitarCoach-JSON; Formaterkennung, Vorschau, Spurauswahl, Zuordnung zu Song, Warnhinweise, Beispieldateien; Import läuft lokal |
+| Import | Guitar Pro 3–8, MusicXML (.xml/.musicxml/.mxl), alphaTex, MIDI, ASCII-Text-Tabs (Dauern geschätzt, Optionen für kleinste Notenlänge/Taktart/Taktstriche, deutlicher Hinweis), GuitarCoach-JSON; Formaterkennung, Vorschau, Spurauswahl, Zuordnung zu Song, Warnhinweise, Beispieldateien; Import läuft lokal |
+| Mitspielmodus | Eigene Audiodatei (MP3/WAV/M4A) dem Song zuordnen, Speicherplatzprüfung, Zeitmarken „Takt = Sekunde“ (eine Marke = Startversatz, zwei oder mehr = Tempo der Aufnahme), Tabs laufen synchron, Takt-Sprünge, Abschnittsschleife, Tempo 50/75/100 % mit Tonhöhenerhalt |
+| Mehrspurigkeit | Hauptspur anzeigen/üben, weitere Spuren eines Imports mit einstellbarer Lautstärke mitspielen (eigene Dämpfungskanäle je Spur) |
+| Bereitstellung | GitHub-Actions-CI (Typen, Lint, Tests, Build, E2E) und GitHub-Pages-Deployment mit konfigurierbarem Basis-Pfad; Capacitor-Konfiguration und Skripte für die spätere iOS-App |
 | Gitarrenschule | 7 Kapitel, 44 Lektionen mit Lernziel, Erklärung, konkreter Übung (Stimmgerät, Griffbrett, Metronom, Übungs-Tab, Lied), Tipps, Selbstkontrolle, Abschluss + Speicherung, nächste Lektion; interaktive Einführung „Tabs verstehen“ (9 Schritte, anklickbare Beispiele) |
 | Übungen | 22 eigene technische Übungen (leere Saiten, p-i-m-a, Wechselschlag, Bund 1–3, Chromatik, Tonleiter, Rhythmus, Riffs, Offbeat, Fingerpicking, Hammer-on/Pull-off, Slide/Vibrato, Pentatonik, Solo) – als Vorübungen zu den geschützten Songs verknüpft |
 | Spiel mit (Phase 2) | Erwartete Note + Griffbrett, Mikrofon-Analyse, grün/gelb/rot, zu tief/zu hoch/Oktave/falsch, Toleranz und Mindestdauer einstellbar, Onset-Erkennung gegen Doppelwertung, Referenzton pausiert Analyse, Überspringen/Zurück/Pausieren, Ergebnis gespeichert (Sitzung, Song-Trefferquote, Lektion) |
@@ -33,17 +36,18 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 - **Wiederholungen** werden in der Tab-Ansicht entrollt (jeder Durchgang sichtbar) statt mit Wiederholungszeichen dargestellt.
 - **Mehrstimmige Takte** (z. B. Melodie + Bass in getrennten Stimmen) werden abgespielt; gezeichnet werden alle Stimmen, Rhythmushälse nur für Stimme 1.
 - **Noten-Ansicht** ist eine statische Partitur (alphaTab-Renderer im Hauptthread): keine Abspielmarke, kein Antippen; für importierte Dateien wird die Originaldatei gerendert, sonst ein alphaTex-Export des internen Modells (Bends/Harmonics gehen dabei verloren).
+- **Text-Tab-Import** schätzt Notenlängen aus Zeichenabständen (häufigster Abstand = gewählte Grundlänge); bei unregelmäßig gesetzten Tabs ist Nacharbeit im Editor nötig. Mehrstimmige Text-Tabs werden auf eine Stimme reduziert.
+- **Mitspielmodus** synchronisiert ausschließlich manuell über Zeitmarken; `playbackRate` unter 100 % hält die Tonhöhe nur, wenn der Browser `preservesPitch` unterstützt (Safari ab 15 ja).
+- **Capacitor** ist konfiguriert, die native iOS-App wurde ohne Mac/Xcode nicht gebaut.
 - **Automatische Vereinfachung** wählt pro Schlag den höchsten Ton; bei Begleitspuren (Bass) ist das nicht immer die Melodie.
 - **Importierte Rohdateien** werden gespeichert, sind aber nicht Teil der JSON-Sicherung (die daraus erzeugten Noten schon).
 - **Übungszeit** zählt die Zeit auf einer Übungs-/Player-Seite (bei Stimmgerät und Metronom nur bei aktivem Betrieb), nicht die tatsächlich gespielten Töne.
 
 ## Noch nicht umgesetzt
 
-- Import einfacher ASCII-Text-Tabs mit manueller Festlegung der Notenlängen.
 - Zerlegung anspruchsvoller Abschnitte in automatisch erzeugte Kurzübungen (die Schleife deckt das manuell ab).
-- Audiodatei-Import (MP3/WAV/M4A) und manuell synchronisierter Mitspielmodus.
-- Mehrspurige gleichzeitige Wiedergabe (aktuell eine Spur wählbar).
-- Capacitor-Paketierung als native iPhone-App.
+- Rhythmus-Bewertung (zu früh/zu spät) und Akkorderkennung im Spiel-mit-Modus.
+- Tatsächlicher Xcode-Build der Capacitor-App (nur auf macOS möglich).
 
 ## Bekannte Einschränkungen
 
@@ -57,14 +61,17 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 
 - `npm run typecheck`: fehlerfrei
 - `npm run lint`: fehlerfrei
-- `npm test`: 24 Dateien, 153 Tests bestanden
-- `npm run build`: erfolgreich (Precache ca. 3,1 MB inkl. alphaTab-Import und Bravura-Notenschrift)
-- `npm run e2e` (Playwright, iPhone-Viewport in Chromium): 14 Smoke-Tests bestanden – Dashboard, Bibliothek (Test 10), Happy Birthday mit Tempo 50 % und Einzelton (Tests 3/6), Schleife (Test 7), Guitar-Pro-Import (Test 5), Fortschritt nach Neuladen (Test 8), Gitarrenschule, Stimmgerät ohne Mikrofon zeigt keinen Ton (Test 1 teilweise), Griffbrett (Test 2), Metronom, Offline-Betrieb (Test 9), Noten-Ansicht, Vereinfachung, Spiel-mit-Start (Test 11 teilweise)
+- `npm test`: 26 Dateien, 162 Tests bestanden
+- `npm run build`: erfolgreich (Precache ca. 3,5 MB inkl. alphaTab-Import und Bravura-Notenschrift)
+- `npm run e2e` (Playwright, iPhone-Viewport in Chromium): 16 Tests bestanden – Dashboard, Bibliothek (Test 10), Happy Birthday mit Tempo 50 % und Einzelton (Tests 3/6), Schleife (Test 7), Guitar-Pro-Import (Test 5), Fortschritt nach Neuladen (Test 8), Gitarrenschule, Griffbrett (Test 2), Metronom, Offline-Betrieb (Test 9), Noten-Ansicht, Vereinfachung, Spiel-mit-Start; mit simuliertem Mikrofon (synthetische Gitarrentöne über Chromiums Fake-Audio-Capture): Stimmgerät erkennt A2 = 110 Hz als richtig gestimmt (Test 1), Spiel-mit-Modus erkennt die gespielten leeren Saiten und zählt Treffer (Test 11)
+- GitHub Actions führt dieselbe Pipeline bei jedem Push aus
 
 ## Manuelle Tests, die noch auf einem echten iPhone nötig sind
 
-1. **Stimmgerät mit echter Gitarre** (Test 1): alle sechs Saiten, Erkennungsgeschwindigkeit, Verhalten bei Nebengeräuschen, Empfindlichkeitsstufen.
-2. **Spiel-mit-Modus** (Test 11): Einzeltöne der Übung „Die sechs leeren Saiten“, Doppelwertung bei gleichen Folgetönen, Toleranz 30 Cent sinnvoll?
+Die Signalkette (Mikrofon → YIN → Stabilisierung → Anzeige/Bewertung) ist automatisiert mit synthetischen Gitarrentönen geprüft. Offen bleibt, was nur echte Hardware zeigt:
+
+1. **Stimmgerät mit echter Gitarre** (Test 1): Nebengeräusche im Raum, Raumhall, Empfindlichkeitsstufen, Abstand zum iPhone-Mikrofon, tiefe E-Saite bei leisem Anschlag.
+2. **Spiel-mit-Modus** (Test 11): Verhalten bei echten Anschlaggeräuschen, Doppelwertung bei gleichen Folgetönen, ob Toleranz 30 Cent und Mindestdauer 120 ms angenehm sind.
 3. **Lautstärke und Klang** des Synths über iPhone-Lautsprecher und Kopfhörer; Lautstärkebalance Metronom/Gitarre.
 4. **Home-Bildschirm-Installation**, Start im Vollbild, Safe Areas im Hoch- und Querformat, Dynamic Island.
 5. **Unterbrechungen**: eingehender Anruf, App-Wechsel, Bildschirmsperre – Wiedergabe pausiert, Mikrofon freigegeben, danach weiter nutzbar.

@@ -32,6 +32,8 @@ export interface NoteEvent {
   fret: number;
   velocity: number;
   techniques: Technique[];
+  /** Spur, aus der das Ereignis stammt (für Begleitspuren). */
+  trackIndex: number;
   instanceIndex: number;
   barIndex: number;
   voice: number;
@@ -74,6 +76,8 @@ export interface MetronomeTick {
 
 export interface PlaybackPlan {
   trackIndex: number;
+  /** Zusätzlich mitgespielte Begleitspuren. */
+  accompanimentTracks?: number[];
   events: PlaybackEvent[];
   beats: BeatRef[];
   barInstances: BarInstance[];
@@ -227,6 +231,7 @@ export function buildPlaybackPlan(score: Score, trackIndex = 0): PlaybackPlan {
         fret: note.fret,
         velocity: note.velocity ?? 0.85,
         techniques: note.techniques ?? [],
+        trackIndex,
         instanceIndex: ref.instanceIndex,
         barIndex: ref.barIndex,
         voice: ref.voice,
@@ -262,6 +267,26 @@ export function buildPlaybackPlan(score: Score, trackIndex = 0): PlaybackPlan {
     totalTicks: last ? last.endTick : 0,
     totalSec: last ? last.endSec : 0,
   };
+}
+
+/**
+ * Abspielplan mit Begleitspuren: Darstellung, Beats und Einzelton-Modus folgen der Hauptspur,
+ * die Noten der Begleitspuren werden leiser mitgespielt.
+ */
+export function buildMixPlan(score: Score, mainTrackIndex: number, accompaniment: Array<{ trackIndex: number; gain: number }>): PlaybackPlan {
+  const main = buildPlaybackPlan(score, mainTrackIndex);
+  const extra = accompaniment.filter((a) => a.trackIndex !== mainTrackIndex && score.tracks[a.trackIndex]);
+  if (extra.length === 0) return main;
+  const events: PlaybackEvent[] = [...main.events];
+  for (const acc of extra) {
+    const plan = buildPlaybackPlan(score, acc.trackIndex);
+    for (const ev of plan.events) {
+      if (ev.kind !== 'note') continue;
+      events.push({ ...ev, velocity: Math.max(0.05, Math.min(1, ev.velocity * acc.gain)), trackIndex: acc.trackIndex, beatRef: -1 });
+    }
+  }
+  events.sort((a, b) => a.tick - b.tick || (a.kind === 'rest' ? -1 : 1));
+  return { ...main, events, accompanimentTracks: extra.map((a) => a.trackIndex) };
 }
 
 /** Findet den Beat, der zu einer Abspielposition (Sekunden bei 100 % Tempo) gehört. */

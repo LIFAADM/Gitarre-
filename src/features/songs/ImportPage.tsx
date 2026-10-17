@@ -4,7 +4,8 @@ import { CircleCheck, FileMusic, TriangleAlert, Upload } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Badge, Button, Card, PageHeader, Segmented, useToast } from '@/components/ui';
 import { ACCEPTED_EXTENSIONS, FORMAT_INFOS, formatLabel } from '@/core/import/formats';
-import { importFileBytes, type ImportOutcome } from '@/core/import/importFile';
+import { importFileBytes, reparseTextTab, type ImportOutcome } from '@/core/import/importFile';
+import type { DurationBase } from '@/core/music/durations';
 import type { Score } from '@/core/music/score';
 import { getDb } from '@/core/storage/db';
 import { SongRepository } from '@/core/storage/repositories';
@@ -65,7 +66,7 @@ export function ImportPage() {
 
   const loadSample = async (file: string): Promise<void> => {
     try {
-      const res = await fetch(`/samples/${file}`);
+      const res = await fetch(`${import.meta.env.BASE_URL}samples/${file}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       await processBytes(file, new Uint8Array(await res.arrayBuffer()), 'application/octet-stream');
     } catch (error) {
@@ -79,13 +80,31 @@ export function ImportPage() {
     return step.outcome.result.score;
   }, [step]);
 
+  const updateTextTabOptions = (patch: Record<string, unknown>): void => {
+    if (step.kind !== 'preview' || step.outcome.kind !== 'texttab') return;
+    try {
+      const outcome = reparseTextTab(step.outcome.text, { ...step.outcome.options, ...patch });
+      setStep({ ...step, outcome });
+    } catch (error) {
+      setStep({ kind: 'error', message: error instanceof Error ? error.message : String(error), name: step.name });
+    }
+  };
+
   const save = async (): Promise<void> => {
     if (step.kind !== 'preview' || !bytesRef.current) return;
     setSaving(true);
     const repo = new SongRepository();
     try {
       let songId = targetSongId;
-      if (step.outcome.kind === 'gcjson') {
+      if (step.outcome.kind === 'texttab') {
+        const { score } = step.outcome.result;
+        if (songId === 'new') {
+          const song = await repo.create({ title: score.title, artist: 'Unbekannt', genre: 'Sonstiges', difficulty: 2, rightsStatus: 'user-import', originalTempo: Math.round(score.tempo) });
+          songId = song.id;
+        }
+        const stored = await repo.saveImportFile({ name: step.name, mimeType: 'text/plain', size: step.size, format: 'texttab', blob: new Blob([bytesRef.current as BlobPart]), songId });
+        await repo.addVersion({ songId, label, kind: 'imported', score, sourceFileId: stored.id, sourceFormat: 'texttab', description: `Importiert aus Text-Tab „${step.name}“ – Notenlängen geschätzt, im Tab-Editor korrigierbar.` });
+      } else if (step.outcome.kind === 'gcjson') {
         const file = step.outcome.file;
         if (songId === 'new') {
           const song = await repo.create({ ...file.song, rightsStatus: file.song.rightsStatus === 'public-domain' ? 'user-import' : file.song.rightsStatus });
@@ -216,7 +235,39 @@ export function ImportPage() {
                   </dl>
                 </div>
               </div>
-              {step.outcome.kind === 'score' && step.outcome.result.warnings.length > 0 && (
+              {step.outcome.kind === 'texttab' && (
+                <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-warn/40 bg-warn/10 p-3">
+                  <p className="flex items-start gap-2 text-sm">
+                    <TriangleAlert size={16} className="mt-0.5 shrink-0 text-warn" /> Text-Tabs enthalten keine Notenlängen. Lege fest, wie GuitarCoach die Dauern bestimmen soll – nachträglich kannst du sie im Tab-Editor anpassen.
+                  </p>
+                  <div>
+                    <span className="mb-1 block text-xs text-muted">Kleinste Notenlänge</span>
+                    <Segmented size="sm" value={(step.outcome.options.defaultDuration ?? 8) as DurationBase} onChange={(v) => updateTextTabOptions({ defaultDuration: v })} options={[{ value: 4 as DurationBase, label: 'Viertel' }, { value: 8 as DurationBase, label: 'Achtel' }, { value: 16 as DurationBase, label: 'Sechzehntel' }]} />
+                  </div>
+                  <div>
+                    <span className="mb-1 block text-xs text-muted">Taktart</span>
+                    <Segmented size="sm" value={`${(step.outcome.options.timeSignature ?? [4, 4])[0]}/${(step.outcome.options.timeSignature ?? [4, 4])[1]}`} onChange={(v) => { const [n, d] = v.split('/').map(Number) as [number, number]; updateTextTabOptions({ timeSignature: [n, d] }); }} options={['2/4', '3/4', '4/4', '6/8'].map((v) => ({ value: v, label: v }))} />
+                  </div>
+                  <Segmented
+                    size="sm"
+                    value={step.outcome.options.estimateFromSpacing === false ? 'fixed' : 'estimate'}
+                    onChange={(v) => updateTextTabOptions({ estimateFromSpacing: v === 'estimate' })}
+                    options={[{ value: 'estimate', label: 'Dauer aus Abständen schätzen' }, { value: 'fixed', label: 'Alle gleich lang' }]}
+                  />
+                  <Segmented
+                    size="sm"
+                    value={step.outcome.options.useBarlines === false ? 'pack' : 'barlines'}
+                    onChange={(v) => updateTextTabOptions({ useBarlines: v === 'barlines' })}
+                    options={[{ value: 'barlines', label: 'Taktstriche übernehmen' }, { value: 'pack', label: 'Takte automatisch füllen' }]}
+                  />
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted">Tempo (BPM)</span>
+                    <input className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm" inputMode="numeric" defaultValue={step.outcome.options.tempo ?? 90} onBlur={(e) => updateTextTabOptions({ tempo: Math.min(240, Math.max(30, Number(e.target.value) || 90)) })} />
+                  </label>
+                  <p className="text-xs text-muted">{step.outcome.result.noteCount} Töne, {step.outcome.result.score.masterBars.length} Takte erkannt.</p>
+                </div>
+              )}
+              {(step.outcome.kind === 'score' || step.outcome.kind === 'texttab') && step.outcome.result.warnings.length > 0 && (
                 <ul className="mt-3 flex flex-col gap-1">
                   {step.outcome.result.warnings.map((w) => (
                     <li key={w} className="flex items-start gap-2 rounded-xl bg-warn/10 px-3 py-2 text-xs text-warn">
@@ -269,7 +320,7 @@ export function ImportPage() {
                   ))}
                 </select>
               </label>
-              {step.outcome.kind === 'score' && (
+              {(step.outcome.kind === 'score' || step.outcome.kind === 'texttab') && (
                 <div>
                   <span className="mb-1 block text-sm text-muted">Bezeichnung der Version</span>
                   <Segmented size="sm" value={label} onChange={setLabel} options={LABELS.map((l) => ({ value: l, label: l }))} />
@@ -299,7 +350,7 @@ export function ImportPage() {
             ))}
           </ul>
           <p className="mt-3 text-xs text-muted">
-            Einfache ASCII-Text-Tabs ohne Rhythmusangaben werden noch nicht importiert, weil ihnen die Notenlängen fehlen. Geplant ist ein Import mit manueller Festlegung der Dauern.
+            Bei ASCII-Text-Tabs fehlen die Notenlängen: GuitarCoach schätzt sie aus den Abständen oder nimmt eine feste Länge an und weist deutlich darauf hin. Die Dauern lassen sich anschließend im Tab-Editor korrigieren.
           </p>
         </Card>
       </div>

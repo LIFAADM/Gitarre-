@@ -6,7 +6,7 @@ import { outputLatencySeconds, unlockAudio } from '@/core/audio/audioContext';
 import { TEMPO_FACTORS, type LoopRange } from '@/core/audio/tabPlayer';
 import { formatSeconds } from '@/core/music/durations';
 import { noteNameWithOctave } from '@/core/music/notes';
-import { buildPlaybackPlan, type BeatRef } from '@/core/music/playback';
+import { buildMixPlan, type BeatRef } from '@/core/music/playback';
 import type { Score } from '@/core/music/score';
 import { ProgressRepository } from '@/core/storage/repositories';
 import type { PracticeKind } from '@/core/storage/types';
@@ -44,8 +44,13 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
   const toast = useToast();
 
   const [trackIndex, setTrackIndex] = useState(0);
+  const [accompaniment, setAccompaniment] = useState<number[]>([]);
+  const [accompanimentGain, setAccompanimentGain] = useState(0.5);
   const safeTrackIndex = Math.min(trackIndex, Math.max(0, score.tracks.length - 1));
-  const plan = useMemo(() => buildPlaybackPlan(score, safeTrackIndex), [score, safeTrackIndex]);
+  const plan = useMemo(
+    () => buildMixPlan(score, safeTrackIndex, accompaniment.map((i) => ({ trackIndex: i, gain: accompanimentGain }))),
+    [score, safeTrackIndex, accompaniment, accompanimentGain],
+  );
   const track = score.tracks[safeTrackIndex]!;
   const voice0Beats = useMemo(() => plan.beats.filter((b) => b.voice === 0), [plan]);
 
@@ -255,6 +260,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
           </Badge>
         )}
         {snapshot.status === 'counting' && <Badge tone="gold">Einzähler …</Badge>}
+        {plan.accompanimentTracks && plan.accompanimentTracks.length > 0 && <Badge tone="info">+{plan.accompanimentTracks.length} Begleitspur{plan.accompanimentTracks.length > 1 ? 'en' : ''}</Badge>}
         {selectingLoop && <Badge tone="warn">Takte antippen: {loopAnchor === null ? 'Anfang' : 'Ende'}</Badge>}
       </div>
 
@@ -513,26 +519,42 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
       </Sheet>
 
       {/* Spuren-Sheet */}
-      <Sheet open={trackSheet} onClose={() => setTrackSheet(false)} title="Gitarrenspur wählen">
-        <div className="flex flex-col gap-2">
+      <Sheet open={trackSheet} onClose={() => setTrackSheet(false)} title="Spuren">
+        <p className="text-sm text-muted">Die Hauptspur wird angezeigt und geübt. Weitere Spuren können leiser mitgespielt werden.</p>
+        <div className="mt-3 flex flex-col gap-2">
           {score.tracks.map((t, i) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => {
-                setTrackIndex(i);
-                setTrackSheet(false);
-              }}
-              className={cn('flex items-center justify-between rounded-2xl border px-4 py-3 text-left', i === safeTrackIndex ? 'border-gold bg-gold/10' : 'border-border bg-surface-2')}
-            >
-              <span>
+            <div key={t.id} className={cn('flex items-center justify-between gap-2 rounded-2xl border px-4 py-3', i === safeTrackIndex ? 'border-gold bg-gold/10' : 'border-border bg-surface-2')}>
+              <button
+                type="button"
+                onClick={() => {
+                  setTrackIndex(i);
+                  setAccompaniment((list) => list.filter((x) => x !== i));
+                }}
+                className="min-w-0 flex-1 text-left"
+              >
                 <span className="block font-semibold">{t.name}</span>
-                <span className="block text-xs text-muted">{t.tuning.length} Saiten · {t.bars.length} Takte</span>
-              </span>
-              {i === safeTrackIndex && <Badge tone="gold">aktiv</Badge>}
-            </button>
+                <span className="block text-xs text-muted">
+                  {t.tuning.length} Saiten · {t.bars.length} Takte
+                </span>
+              </button>
+              {i === safeTrackIndex ? (
+                <Badge tone="gold">Hauptspur</Badge>
+              ) : (
+                <Button size="sm" variant={accompaniment.includes(i) ? 'primary' : 'secondary'} onClick={() => setAccompaniment((list) => (list.includes(i) ? list.filter((x) => x !== i) : [...list, i]))}>
+                  {accompaniment.includes(i) ? 'spielt mit' : 'mitspielen'}
+                </Button>
+              )}
+            </div>
           ))}
         </div>
+        {accompaniment.length > 0 && (
+          <div className="mt-3">
+            <Slider label="Lautstärke der Begleitspuren" value={Math.round(accompanimentGain * 100)} min={10} max={100} step={10} onChange={(v) => setAccompanimentGain(v / 100)} format={(v) => `${v} %`} />
+          </div>
+        )}
+        <Button className="mt-4" full variant="primary" onClick={() => setTrackSheet(false)}>
+          Fertig
+        </Button>
       </Sheet>
     </div>
   );

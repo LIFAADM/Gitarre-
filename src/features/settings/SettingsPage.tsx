@@ -236,7 +236,7 @@ export function SettingsPage() {
             onClick={async () => {
               if (confirm === 'all') {
                 await deleteAllData();
-                window.location.href = '/';
+                window.location.href = import.meta.env.BASE_URL;
               } else {
                 await resetProgress();
                 toast.show('Lernfortschritt zurückgesetzt.', 'info');

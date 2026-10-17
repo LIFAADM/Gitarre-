@@ -48,10 +48,19 @@ Dexie (IndexedDB) mit Tabellen `songs`, `songVersions`, `importFiles`, `practice
 ### 9. Statistiken ohne Erfindung
 Alle Zahlen stammen aus `practiceSessions` (gemessene Zeit je Seite/Modus) und gespeicherten Ergebnissen. Empfehlungen sind regelbasiert (`recommendations.ts`), Erfolge werden aus den Daten abgeleitet und mit Zeitstempel gespeichert.
 
-### 10. Automatische Vereinfachung
+### 10. Weitere Importe und Mitspielmodus
+`textTabImport.ts` liest ASCII-Text-Tabs (6 Zeilen, Bundzahlen, Techniken h/p/~/slide) und schätzt Notenlängen aus den Zeichenabständen (häufigster Abstand = gewählte Grundlänge, Vielfache = längere Noten); das Ergebnis wird deutlich als Schätzung markiert. `playalong/syncMap.ts` bildet Audiozeit und Planzeit über manuell gesetzte Zeitmarken stückweise linear aufeinander ab; die Audiodatei spielt ein `<audio>`-Element (Blob-URL aus IndexedDB), die Tab-Ansicht folgt per `requestAnimationFrame`.
+
+### 11. Mehrspurige Wiedergabe
+`buildMixPlan` hängt die Notenereignisse von Begleitspuren (mit Lautstärkefaktor) an den Plan der Hauptspur; Beats, Metronom und Einzelton-Modus bleiben an der Hauptspur. Der Synth dämpft Saiten pro Kanal (Spur), damit Begleitspuren nicht die Hauptstimme abwürgen.
+
+### 12. Bereitstellung und Tests mit Mikrofon-Simulation
+Der Basis-Pfad ist über `GUITARCOACH_BASE` konfigurierbar (GitHub Pages unter `/<repo>/`); Router, Manifest, Service Worker, Font- und Beispielpfade nutzen `import.meta.env.BASE_URL`. Playwright-Projekte speisen über `--use-file-for-fake-audio-capture` synthetische Gitarrentöne (eigene WAV-Fixtures) in die echte Analysekette ein.
+
+### 13. Automatische Vereinfachung
 `simplifyScore` erzeugt aus einer Spur eine monophone Übungsstimme (höchster Ton je Schlag), entfernt Spieltechniken, fasst 16tel zu 8teln zusammen und verlegt Töne in eine tiefere Lage, wenn möglich. Das Ergebnis wird als eigene Version mit `kind: 'simplified'` gespeichert und in der Oberfläche als Vereinfachung gekennzeichnet – nie als Original ausgegeben.
 
-### 11. Rechte
+### 14. Rechte
 Nur gemeinfreie Lieder (eigene Arrangements) und eigene Übungen sind enthalten. Geschützte Songs existieren als Bibliothekseinträge mit Status „Tab-Datei nötig“ plus eigenen Vorübungen; Noten kommen ausschließlich per Nutzer-Import.
 
 ## Erweiterbarkeit

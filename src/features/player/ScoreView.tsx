@@ -27,7 +27,7 @@ export function ScoreView({ score, trackIndex, sourceFileId, zoom = 1 }: { score
         const alphaTab = await loadAlphaTab();
         if (disposed) return;
         const settings = {
-          core: { fontDirectory: '/font/', useWorkers: false, engine: 'svg', logLevel: 1 },
+          core: { fontDirectory: `${import.meta.env.BASE_URL}font/`, useWorkers: false, engine: 'svg', logLevel: 1 },
           display: {
             layoutMode: 'page',
             staveProfile: 'scoretab',
