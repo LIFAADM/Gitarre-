@@ -15,6 +15,7 @@ import { useEngine, usePlayerSnapshot } from '@/hooks/useEngine';
 import { usePracticeSession } from '@/hooks/usePracticeSession';
 import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/cn';
+import { ScoreView } from './ScoreView';
 import { TabView, type TabViewHandle } from './TabView';
 
 export interface SongPlayerProps {
@@ -28,12 +29,14 @@ export interface SongPlayerProps {
   compact?: boolean;
   /** Link zum Spiel-mit-Modus anzeigen. */
   listenHref?: string;
+  /** Importdatei (für die Noten-Ansicht aus der Originaldatei). */
+  sourceFileId?: string;
   onPlaythroughComplete?: (info: { tempoFactor: number }) => void;
 }
 
 const TEMPO_PRESETS = [0.25, 0.5, 0.75, 1] as const;
 
-export function SongPlayer({ score, songId, title, practiceKind = 'song', practiceRefId, initialTempoFactor, compact = false, listenHref, onPlaythroughComplete }: SongPlayerProps) {
+export function SongPlayer({ score, songId, title, practiceKind = 'song', practiceRefId, initialTempoFactor, compact = false, listenHref, sourceFileId, onPlaythroughComplete }: SongPlayerProps) {
   const engine = useEngine();
   const { player, synth } = engine;
   const snapshot = usePlayerSnapshot();
@@ -55,6 +58,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
   const [trackSheet, setTrackSheet] = useState(false);
   const [showFretboard, setShowFretboard] = useState(!compact);
   const [fineTempo, setFineTempo] = useState(Math.round((initialTempoFactor ?? 1) * 100));
+  const [view, setView] = useState<'tab' | 'score'>(compact ? 'tab' : settings.defaultNotationView);
   const tabRef = useRef<TabViewHandle | null>(null);
   const maxTempoUsed = useRef(initialTempoFactor ?? 1);
   const startedFromBeginning = useRef(true);
@@ -269,8 +273,29 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
         <span className="absolute left-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gold" style={{ width: `${plan.totalSec > 0 ? (positionSec / plan.totalSec) * 100 : 0}%` }} />
       </button>
 
-      {/* Tabulatur */}
-      <div className="rounded-card border border-border/70 bg-surface px-1 py-3 overflow-hidden">
+      {/* Ansicht: Tabulatur oder Noten + Tab */}
+      {!compact && (
+        <Segmented
+          size="sm"
+          ariaLabel="Darstellung"
+          value={view}
+          onChange={(v) => {
+            setView(v);
+            void updateSettings({ defaultNotationView: v });
+          }}
+          options={[
+            { value: 'tab', label: 'Tabulatur' },
+            { value: 'score', label: 'Noten + Tab' },
+          ]}
+        />
+      )}
+      {view === 'score' && !compact && (
+        <div className="rounded-card border border-border/70 bg-surface px-1 py-2">
+          <ScoreView score={score} trackIndex={safeTrackIndex} {...(sourceFileId ? { sourceFileId } : {})} zoom={zoom} />
+          <p className="px-2 pt-1 text-[11px] text-muted">Partitur-Ansicht (klassische Notenschrift + Tab). Abspielmarke, Schleifen-Auswahl und Antippen von Noten gibt es in der Tabulatur-Ansicht.</p>
+        </div>
+      )}
+      <div className={cn('rounded-card border border-border/70 bg-surface px-1 py-3 overflow-hidden', view === 'score' && !compact && 'hidden')}>
         <TabView
           ref={tabRef}
           plan={plan}
@@ -283,7 +308,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
           naming={settings.noteNaming}
           selectingLoop={selectingLoop}
           loopAnchor={loopAnchor}
-          autoScroll={settings.autoScroll}
+          autoScroll={settings.autoScroll && isPlaying}
           onBeatTap={handleBeatTap}
           onBarTap={handleBarTap}
         />

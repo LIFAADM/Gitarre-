@@ -50,7 +50,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,otf,json,webmanifest,gp,musicxml,gcjson}'],
         // Der GM-SoundFont von alphaTab (1,3 MB) wird in v1 nicht benötigt (eigener Gitarren-Synth).
         // Worker/Worklet und Notenschrift von alphaTab werden erst mit der Partitur-Ansicht benötigt (Import läuft im Hauptthread).
-        globIgnores: ['**/soundfont/**', '**/*.map', '**/font/**', '**/alphaTab.worker*', '**/alphaTab.worklet*'],
+        globIgnores: ['**/soundfont/**', '**/*.map', '**/font/*.svg', '**/font/*.eot', '**/font/*.txt', '**/alphaTab.worker*', '**/alphaTab.worklet*'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,

@@ -5,7 +5,7 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 **Kernfunktionen**
 
 - 🎸 **Stimmgerät** mit dem iPhone-Mikrofon (YIN-Tonerkennung, Cent-Anzeige, Nadel, Saitenerkennung, Referenztöne)
-- 🎼 **Interaktiver Tab-Player** mit echter Klangwiedergabe (eigener Nylonsaiten-Synthesizer), Tempo 25–150 %, Abschnittsschleife, Einzeltonmodus, Metronom mit Einzähler, Griffbrett-Anzeige der aktuellen Note
+- 🎼 **Interaktiver Tab-Player** mit echter Klangwiedergabe (eigener Nylonsaiten-Synthesizer), Tempo 25–150 %, Abschnittsschleife, Einzeltonmodus, Metronom mit Einzähler, Griffbrett-Anzeige der aktuellen Note, umschaltbare Noten-Ansicht (klassische Notenschrift + Tab) und automatische Vereinfachung zu einer Übungsstimme
 - 📚 **Gitarrenschule** mit 7 Kapiteln und 42 Lektionen (Erklärung, Übung, Hörbeispiel, Griffbrett, Selbstkontrolle, Speicherung)
 - 🎵 **Songbibliothek** mit allen Wunsch-Songs: sechs gemeinfreie Lieder sofort spielbar (eigene Arrangements in mehreren Lernversionen), geschützte Songs mit Importstatus und eigenen Vorübungen
 - 📥 **Import** von Guitar Pro 3–8, MusicXML, alphaTex, MIDI und GuitarCoach-JSON – lokal verarbeitet, offline nutzbar
@@ -23,7 +23,7 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 | Import | alphaTab 1.8 (Guitar Pro, MusicXML, alphaTex), eigener MIDI-Parser, eigenes JSON-Format |
 | Speicher | IndexedDB via Dexie 4 (LocalStorage nur für Kleinstwerte) |
 | Offline | vite-plugin-pwa / Workbox (Precache aller App-Dateien inkl. Beispieldateien) |
-| Tests | Vitest + Testing Library (149 Unit-/Komponententests), Playwright (12 End-to-End-Smoke-Tests) |
+| Tests | Vitest + Testing Library (153 Unit-/Komponententests), Playwright (14 End-to-End-Smoke-Tests) |
 
 ## Installation und Start
 
@@ -43,7 +43,7 @@ npm run build        # erzeugt dist/ inkl. Service Worker und Manifest
 npm run preview      # lokaler Server für den Build (http://127.0.0.1:4173)
 ```
 
-`dist/` ist statisch und kann auf jedem HTTPS-Webspace liegen. Der Service Worker cached die App nach dem ersten Laden vollständig (ca. 2 MB), danach läuft sie offline.
+`dist/` ist statisch und kann auf jedem HTTPS-Webspace liegen. Der Service Worker cached die App nach dem ersten Laden vollständig (ca. 3 MB inkl. Importbibliothek und Notenschrift), danach läuft sie offline.
 
 ## Tests
 
@@ -56,7 +56,7 @@ PW_CHROMIUM_PATH=/pfad/zu/chromium npm run e2e   # Playwright-Smoke-Tests gegen 
 npm run check        # typecheck + lint + test + build
 ```
 
-Getestete Bereiche: Frequenz↔Note und Cent, Stimmung/Saitenerkennung, Bund-/Saitenpositionen, Notendauern und Timing, Tab-Notation, Abspielplan (Wiederholungen, Tempo), Player-Timing (50 %, Schleife, Einzähler, Einzelton), Karplus-Strong-Tonhöhe, YIN-Tonerkennung, Pitch-Tracker, Import (GP7, MusicXML, alphaTex, MIDI, JSON), Speicherung/Wiederherstellung, Fortschrittsberechnung, Statistiken/Empfehlungen/Erfolge, Lektionsinhalte, Editor-Modell, UI-Komponenten (Tuner, Griffbrett, Metronom).
+Getestete Bereiche: Frequenz↔Note und Cent, Stimmung/Saitenerkennung, Bund-/Saitenpositionen, Notendauern und Timing, Tab-Notation, Abspielplan (Wiederholungen, Tempo), Player-Timing (50 %, Schleife, Einzähler, Einzelton), Karplus-Strong-Tonhöhe, YIN-Tonerkennung, Pitch-Tracker, Import (GP7, MusicXML, alphaTex, MIDI, JSON), alphaTex-Export (Rundreise durch alphaTab), automatische Vereinfachung, Speicherung/Wiederherstellung, Fortschrittsberechnung, Statistiken/Empfehlungen/Erfolge, Lektionsinhalte, Editor-Modell, UI-Komponenten (Tuner, Griffbrett, Metronom).
 
 ## Projektstruktur
 

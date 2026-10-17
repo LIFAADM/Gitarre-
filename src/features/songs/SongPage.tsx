@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Download, Dumbbell, Heart, Info, Trash, Upload } from 'lucide-react';
+import { Download, Dumbbell, Heart, Info, Sparkles, Trash, Upload } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Badge, Button, Card, EmptyState, IconButton, PageHeader, PressableCard, ProgressBar, Sheet, useToast } from '@/components/ui';
 import { getExercise } from '@/core/content/exercises';
@@ -8,6 +8,7 @@ import { createSongFile } from '@/core/import/gcjson';
 import { getDb } from '@/core/storage/db';
 import { SongRepository } from '@/core/storage/repositories';
 import type { SongVersionRecord } from '@/core/storage/types';
+import { simplifyScore } from '@/core/music/simplify';
 import { SongPlayer } from '@/features/player/SongPlayer';
 import { cn } from '@/lib/cn';
 import { formatMinutes } from '@/lib/format';
@@ -52,6 +53,25 @@ export function SongPage() {
     const file = createSongFile(song, sorted);
     downloadTextFile(`${slugify(song.title) || 'song'}.gcjson`, JSON.stringify(file, null, 2));
     toast.show('Song als GuitarCoach-Datei exportiert.', 'success');
+  };
+
+  const createSimplified = async (): Promise<void> => {
+    if (!selected) return;
+    try {
+      const simplified = simplifyScore(selected.score, { trackIndex: 0 });
+      const v = await repo.addVersion({
+        songId: song.id,
+        label: 'Vereinfacht',
+        kind: 'simplified',
+        score: simplified,
+        description: `Automatisch vereinfacht aus „${selected.label}“: nur ein Ton pro Schlag (Melodie), ohne Spieltechniken, Sechzehntel zu Achteln zusammengefasst – keine originalgetreue Transkription.`,
+      });
+      setVersionId(v.id);
+      setInfoOpen(false);
+      toast.show('Vereinfachte Übungsversion erzeugt.', 'success');
+    } catch (error) {
+      toast.show(`Vereinfachung nicht möglich: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    }
   };
 
   const deleteVersion = async (v: SongVersionRecord): Promise<void> => {
@@ -117,7 +137,7 @@ export function SongPage() {
         {selected ? (
           <>
             {selected.description && <p className="text-sm text-muted">{selected.description}</p>}
-            <SongPlayer key={selected.id} score={selected.score} songId={song.id} title={song.title} listenHref={`/songs/${song.id}/spiel-mit?version=${selected.id}`} />
+            <SongPlayer key={selected.id} score={selected.score} songId={song.id} title={song.title} listenHref={`/songs/${song.id}/spiel-mit?version=${selected.id}`} {...(selected.sourceFileId ? { sourceFileId: selected.sourceFileId } : {})} />
           </>
         ) : (
           <EmptyState
@@ -221,6 +241,11 @@ export function SongPage() {
           {sorted.length > 0 && (
             <Button variant="secondary" icon={<Download size={18} />} onClick={exportSong}>
               Als GuitarCoach-Datei exportieren
+            </Button>
+          )}
+          {selected && selected.kind !== 'simplified' && (
+            <Button variant="secondary" icon={<Sparkles size={18} />} onClick={() => void createSimplified()}>
+              Vereinfachte Übungsversion aus „{selected.label}“ erzeugen
             </Button>
           )}
           {sorted

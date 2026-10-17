@@ -7,9 +7,9 @@ Siehe STATUS.md.
 
 ### Kurzfristig
 1. **Manuelle iPhone-Tests** (Safari, Home-Bildschirm): Mikrofon-Latenz, Lautstärke des Synths, Safe Areas im Querformat, Verhalten bei Anruf/Hintergrund (siehe STATUS.md, Checkliste).
-2. **Notenschrift-Ansicht**: alphaTab-Renderer (`AlphaTabApi`) als umschaltbare „Noten + Tab“-Partituransicht; eigene Scores per alphaTex-Export zuführen. Font (Bravura) und Worker dann in den Precache aufnehmen.
+2. **Noten-Ansicht ausbauen**: Abspielmarke in der alphaTab-Partitur (Beat-Cursor über `tickLookup`), Antippen von Noten, Worker-Rendering für sehr lange Stücke.
 3. **Text-Tab-Import (ASCII)** mit Hinweis auf fehlende Notenlängen und manueller Dauer-Zuweisung im Editor.
-4. **Automatische Vereinfachung** importierter Spuren: monophone Übungsstimme (höchste Note je Beat), Tempo-Vorschlag, Zerlegung in Übungsabschnitte; Kennzeichnung als „vereinfacht“.
+4. **Vereinfachung erweitern**: Wahl der Stimme (Melodie/Bass), Tempo-Vorschlag, automatische Zerlegung in Übungsabschnitte mit Schleifen-Vorgaben.
 
 ### Mittelfristig
 5. **Audiodatei-Import und Mitspielmodus** (MP3/WAV/M4A): Zuordnung zum Song, manuelle Zeitmarken (Takt ↔ Sekunde), Abschnittswiederholung mit Original.

@@ -320,8 +320,8 @@ function SystemSvg({ system, metrics: m, width, plan, beatByRef, tuning, current
             if (beat.notes.length === 1) {
               elements.push(
                 <g key={`fg-${bl.beatRef}-${note.string}`}>
-                  <circle cx={cx} cy={yTop - 9 * m.zoom} r={5.5 * m.zoom} fill="none" stroke={COLORS.gold} strokeWidth={1} />
-                  <text x={cx} y={yTop - 6 * m.zoom} fontSize={8 * m.zoom} textAnchor="middle" fill={COLORS.gold} fontFamily={fontFamily} fontWeight={700}>
+                  <circle cx={cx} cy={yTop - 13 * m.zoom} r={5.5 * m.zoom} fill="none" stroke={COLORS.gold} strokeWidth={1} />
+                  <text x={cx} y={yTop - 10 * m.zoom} fontSize={8 * m.zoom} textAnchor="middle" fill={COLORS.gold} fontFamily={fontFamily} fontWeight={700}>
                     {note.finger}
                   </text>
                 </g>,

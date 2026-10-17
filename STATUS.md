@@ -12,7 +12,8 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 | Griffbrett | 12–19 Bünde, Tippen spielt Ton, Note/Frequenz/Saite/Bund/Finger, Rechts-/Linkshänder, zwei Ansichten, Tonnamen, Modus „Zeige mir den Ton“ mit echter Zählung |
 | Metronom | 40–220 BPM, Start/Stopp, Taktarten 2/4 3/4 4/4 6/8, Akzent, Unterteilungen, Tap-Tempo, Lautstärke, optischer Taktgeber, Audio-Scheduler; integriert in Player (mit Einzähler) und Lektionen |
 | Tab-Darstellung | Eigener SVG-Renderer: 6 Linien, Bundzahlen, Rhythmushälse/Balken/Fähnchen, Pausen, Punktierungen, Triolen, Bindungen, H/P/Slide/Vibrato/P.M./Dead/Harmonic, Fingersatz, Text, Taktnummern, Abschnitte, Tempo, Zoom, Antippen einzelner Noten |
-| Song-Player | Play/Pause/Stopp/Anfang, nächste/vorherige Note (Einzeltonmodus), Tempo 25/50/75/100 % + 25–150 % fein (Wiedergabe tatsächlich skaliert), Schleife per Takt-Stepper oder Antippen, Metronom + Einzähler, Spurauswahl, Griffbrett mit aktueller Note, automatisches Scrollen, Abspielmarke, Fortschrittsbalken, Durchlauf-Erkennung |
+| Song-Player | Play/Pause/Stopp/Anfang, nächste/vorherige Note (Einzeltonmodus), Tempo 25/50/75/100 % + 25–150 % fein (Wiedergabe tatsächlich skaliert), Schleife per Takt-Stepper oder Antippen, Metronom + Einzähler, Spurauswahl, Griffbrett mit aktueller Note, automatisches Scrollen, Abspielmarke, Fortschrittsbalken, Durchlauf-Erkennung, Umschalten Tabulatur ↔ „Noten + Tab“ (alphaTab-Partituransicht, Standard: Tabs) |
+| Vereinfachung | „Vereinfachte Übungsversion erzeugen“ für jede Version: monophone Melodiestimme (höchster Ton), ohne Spieltechniken, Sechzehntel → Achtel, tiefe Lage bevorzugt; als „Vereinfacht“ gekennzeichnet und als eigene Version gespeichert |
 | Klang | Eigener Karplus-Strong-Nylonsaiten-Synth (getestet auf exakte Tonhöhe), saitenweise Dämpfung, Pausen dämpfen, Palm Mute/Staccato/Dead Note, Tiefpass/Körperresonanz/Kompressor |
 | Songbibliothek | 30 Wunsch-Songs vorangelegt; 6 gemeinfreie Lieder mit 14 spielbaren Versionen (Anfänger/Leicht/Mittel mit unterschiedlichen Notendaten); 24 geschützte Songs mit Status „Tab-Datei nötig“, Originaltempo, Schwierigkeit, Genre, Vorübungen; Suche, Filter, Favoriten, Fortschritt; eigene Songs anlegen |
 | Import | Guitar Pro 3–8, MusicXML (.xml/.musicxml/.mxl), alphaTex, MIDI, GuitarCoach-JSON; Formaterkennung, Vorschau, Spurauswahl, Zuordnung zu Song, Warnhinweise, Beispieldateien; Import läuft lokal |
@@ -31,14 +32,15 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 - **MIDI-Import**: Griffpositionen werden heuristisch berechnet (erste Lage bevorzugt) und sind im Editor noch nicht korrigierbar; Dauern werden auf 16tel gerundet.
 - **Wiederholungen** werden in der Tab-Ansicht entrollt (jeder Durchgang sichtbar) statt mit Wiederholungszeichen dargestellt.
 - **Mehrstimmige Takte** (z. B. Melodie + Bass in getrennten Stimmen) werden abgespielt; gezeichnet werden alle Stimmen, Rhythmushälse nur für Stimme 1.
+- **Noten-Ansicht** ist eine statische Partitur (alphaTab-Renderer im Hauptthread): keine Abspielmarke, kein Antippen; für importierte Dateien wird die Originaldatei gerendert, sonst ein alphaTex-Export des internen Modells (Bends/Harmonics gehen dabei verloren).
+- **Automatische Vereinfachung** wählt pro Schlag den höchsten Ton; bei Begleitspuren (Bass) ist das nicht immer die Melodie.
 - **Importierte Rohdateien** werden gespeichert, sind aber nicht Teil der JSON-Sicherung (die daraus erzeugten Noten schon).
 - **Übungszeit** zählt die Zeit auf einer Übungs-/Player-Seite (bei Stimmgerät und Metronom nur bei aktivem Betrieb), nicht die tatsächlich gespielten Töne.
 
 ## Noch nicht umgesetzt
 
-- Klassische Notenschrift-Ansicht (Umschalten Tab/Noten) – alphaTab-Renderer ist vorbereitet, aber nicht integriert.
 - Import einfacher ASCII-Text-Tabs mit manueller Festlegung der Notenlängen.
-- Automatische Vereinfachung importierter Gitarrenparts (monophone Übungsstimme, Abschnittszerlegung).
+- Zerlegung anspruchsvoller Abschnitte in automatisch erzeugte Kurzübungen (die Schleife deckt das manuell ab).
 - Audiodatei-Import (MP3/WAV/M4A) und manuell synchronisierter Mitspielmodus.
 - Mehrspurige gleichzeitige Wiedergabe (aktuell eine Spur wählbar).
 - Capacitor-Paketierung als native iPhone-App.
@@ -55,9 +57,9 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 
 - `npm run typecheck`: fehlerfrei
 - `npm run lint`: fehlerfrei
-- `npm test`: 22 Dateien, 149 Tests bestanden
-- `npm run build`: erfolgreich (Precache 21 Dateien, ca. 2,1 MB)
-- `npm run e2e` (Playwright, iPhone-Viewport in Chromium): 12 Smoke-Tests bestanden – Dashboard, Bibliothek (Test 10), Happy Birthday mit Tempo 50 % und Einzelton (Tests 3/6), Schleife (Test 7), Guitar-Pro-Import (Test 5), Fortschritt nach Neuladen (Test 8), Gitarrenschule, Stimmgerät ohne Mikrofon zeigt keinen Ton (Test 1 teilweise), Griffbrett (Test 2), Metronom, Offline-Betrieb (Test 9), Spiel-mit-Start (Test 11 teilweise)
+- `npm test`: 24 Dateien, 153 Tests bestanden
+- `npm run build`: erfolgreich (Precache ca. 3,1 MB inkl. alphaTab-Import und Bravura-Notenschrift)
+- `npm run e2e` (Playwright, iPhone-Viewport in Chromium): 14 Smoke-Tests bestanden – Dashboard, Bibliothek (Test 10), Happy Birthday mit Tempo 50 % und Einzelton (Tests 3/6), Schleife (Test 7), Guitar-Pro-Import (Test 5), Fortschritt nach Neuladen (Test 8), Gitarrenschule, Stimmgerät ohne Mikrofon zeigt keinen Ton (Test 1 teilweise), Griffbrett (Test 2), Metronom, Offline-Betrieb (Test 9), Noten-Ansicht, Vereinfachung, Spiel-mit-Start (Test 11 teilweise)
 
 ## Manuelle Tests, die noch auf einem echten iPhone nötig sind
 

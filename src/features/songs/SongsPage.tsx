@@ -11,6 +11,10 @@ import { STATUS_LABEL, songStatus, type SongStatus } from './songUtils';
 
 type Filter = 'alle' | 'ready' | 'needs-import' | 'favoriten';
 
+function statusRank(status: SongStatus): number {
+  return status === 'ready' ? 0 : status === 'imported' ? 1 : 2;
+}
+
 export function SongsPage() {
   const navigate = useNavigate();
   const db = getDb();
@@ -40,7 +44,7 @@ export function SongsPage() {
         if (q && !`${s.title} ${s.artist} ${s.genre}`.toLowerCase().includes(q)) return false;
         return true;
       })
-      .sort((a, b) => a.artist.localeCompare(b.artist, 'de') || a.title.localeCompare(b.title, 'de'));
+      .sort((a, b) => statusRank(songStatus(a, versionCount.get(a.id) ?? 0)) - statusRank(songStatus(b, versionCount.get(b.id) ?? 0)) || a.artist.localeCompare(b.artist, 'de') || a.title.localeCompare(b.title, 'de'));
   }, [songs, versionCount, filter, genre, query]);
 
   const genresInUse = useMemo(() => GENRES.filter((g) => (songs ?? []).some((s) => s.genre === g)), [songs]);

@@ -129,6 +129,24 @@ test.describe('GuitarCoach MVP', () => {
     await dismissToasts(page);
   });
 
+  test('Noten-Ansicht (klassische Notenschrift + Tab) wird gerendert', async ({ page }) => {
+    await page.goto('/songs/alle-jahre-wieder');
+    await page.getByRole('radio', { name: 'Noten + Tab' }).click();
+    const scoreView = page.getByTestId('score-view');
+    await expect(scoreView.locator('svg').first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/konnte nicht dargestellt/)).toHaveCount(0);
+    await page.getByRole('radio', { name: 'Tabulatur' }).click();
+    await expect(page.locator('svg.tab-svg').first()).toBeVisible();
+  });
+
+  test('Vereinfachte Übungsversion wird erzeugt und gekennzeichnet', async ({ page }) => {
+    await page.goto('/songs/stille-nacht');
+    await page.getByRole('button', { name: 'Informationen' }).click();
+    await page.getByRole('button', { name: /Vereinfachte Übungsversion/ }).click();
+    await expect(page.getByRole('button', { name: /Vereinfacht/ }).first()).toBeVisible();
+    await expect(page.getByText(/keine originalgetreue Transkription/)).toBeVisible();
+  });
+
   test('Spiel-mit-Modus startet und zeigt erwarteten Ton (Test 11, ohne Mikrofon)', async ({ page }) => {
     await page.goto('/ueben/uebung/ex-leere-saiten/spiel-mit');
     await expect(page.getByText(/Nächster Ton: E2/)).toBeVisible();

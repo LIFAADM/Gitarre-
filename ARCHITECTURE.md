@@ -24,8 +24,8 @@ src/
 ### 1. Eigenes Datenmodell statt alphaTab-Modell im Kern
 `Score → Track → Bar → Beat → Note` mit Ticks (960 pro Viertel, wie alphaTab). Saite 1 = hohe E (Gitarristen-Konvention). Vorteile: kleine, typsichere Struktur, in IndexedDB serialisierbar, unabhängig von der Importbibliothek; eingebaute Lieder und importierte Dateien laufen durch denselben Player.
 
-### 2. alphaTab nur als Importer (vorerst)
-alphaTab (MPL-2.0) parst Guitar Pro 3–8, MusicXML und alphaTex zuverlässig. Wir nutzen `ScoreLoader` im Hauptthread und konvertieren in unser Modell (`convertAlphaTabScore`). Die Abspielreihenfolge mit Wiederholungen/Sprüngen übernehmen wir aus alphaTabs `MidiFileGenerator.tickLookup`, damit sie exakt der Referenz entspricht. alphaTab wird per `import()` erst beim Import geladen (1,2 MB-Chunk, offline vorgecacht). Renderer, Worker, Worklet und SoundFont von alphaTab werden derzeit nicht genutzt (Notenschrift-Ansicht siehe Roadmap).
+### 2. alphaTab als Importer und für die Partituransicht
+alphaTab (MPL-2.0) parst Guitar Pro 3–8, MusicXML und alphaTex zuverlässig. Wir nutzen `ScoreLoader` im Hauptthread und konvertieren in unser Modell (`convertAlphaTabScore`). Die Abspielreihenfolge mit Wiederholungen/Sprüngen übernehmen wir aus alphaTabs `MidiFileGenerator.tickLookup`, damit sie exakt der Referenz entspricht. alphaTab wird per `import()` erst bei Bedarf geladen (1,2 MB-Chunk, offline vorgecacht). Die optionale „Noten + Tab“-Ansicht (`ScoreView`) nutzt den alphaTab-Renderer im Hauptthread (`useWorkers: false`, SVG, Bravura-Font aus `/font/`); eigene Scores werden dafür per `exportAlphaTex` nach alphaTex übersetzt (Rundreise ist getestet). Player, Worker/Worklet und SoundFont von alphaTab werden nicht genutzt.
 
 ### 3. Eigener Tab-Renderer (SVG)
 `tabLayout.ts` berechnet reine Layout-Daten (Beat-Breiten logarithmisch zur Dauer, Umbruch in Systeme, Streckung auf Containerbreite); `TabView.tsx` zeichnet SVG pro System: Linien, Bundzahlen, Rhythmushälse mit Balken/Fähnchen, Pausen, Bindungen, Techniken (H/P/Slide/Vibrato/P.M.), Fingersatz, Text, Schleifenbereich, aktuelle Note/Takt. Die Abspielmarke wird imperativ (ohne React-Rerender) bewegt. Wiederholungen werden entrollt dargestellt – für Anfänger linear lesbar.
@@ -48,7 +48,10 @@ Dexie (IndexedDB) mit Tabellen `songs`, `songVersions`, `importFiles`, `practice
 ### 9. Statistiken ohne Erfindung
 Alle Zahlen stammen aus `practiceSessions` (gemessene Zeit je Seite/Modus) und gespeicherten Ergebnissen. Empfehlungen sind regelbasiert (`recommendations.ts`), Erfolge werden aus den Daten abgeleitet und mit Zeitstempel gespeichert.
 
-### 10. Rechte
+### 10. Automatische Vereinfachung
+`simplifyScore` erzeugt aus einer Spur eine monophone Übungsstimme (höchster Ton je Schlag), entfernt Spieltechniken, fasst 16tel zu 8teln zusammen und verlegt Töne in eine tiefere Lage, wenn möglich. Das Ergebnis wird als eigene Version mit `kind: 'simplified'` gespeichert und in der Oberfläche als Vereinfachung gekennzeichnet – nie als Original ausgegeben.
+
+### 11. Rechte
 Nur gemeinfreie Lieder (eigene Arrangements) und eigene Übungen sind enthalten. Geschützte Songs existieren als Bibliothekseinträge mit Status „Tab-Datei nötig“ plus eigenen Vorübungen; Noten kommen ausschließlich per Nutzer-Import.
 
 ## Erweiterbarkeit
