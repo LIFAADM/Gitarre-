@@ -48,7 +48,9 @@ Der Workflow `.github/workflows/deploy-pages.yml` baut die App mit dem Basis-Pfa
 
 1. Das Repository muss **öffentlich** sein: Settings → General → Danger Zone → „Change repository visibility“ → Public. Für private Repositories bietet GitHub Pages nur mit einem kostenpflichtigen Plan (GitHub Pro) an; die Pages-Einstellung bleibt sonst gesperrt.
 2. **Settings → Pages → Build and deployment → Source: „GitHub Actions“** wählen.
-3. Unter **Actions → „GitHub Pages (HTTPS-Bereitstellung)“ → „Run workflow“** den gewünschten Branch starten (oder auf `main` pushen).
+3. Auf `main` pushen (oder mergen). Die von GitHub automatisch angelegte Umgebung `github-pages` erlaubt Veröffentlichungen nur vom Hauptzweig; andere Branches schlagen mit „not allowed to deploy to github-pages due to environment protection rules“ fehl, solange sie nicht unter Settings → Environments → github-pages freigegeben sind.
+
+Aktuelle Veröffentlichung: https://lifaadm.github.io/Gitarre-/
 
 Anschließend ist GuitarCoach unter `https://<nutzer>.github.io/<repository>/` erreichbar, inklusive Mikrofon und Offline-Installation. Wer das Repository privat lassen möchte, legt stattdessen den Ordner `dist/` auf einen beliebigen HTTPS-Host (Netlify, Cloudflare Pages, Vercel, eigener Server).
 
