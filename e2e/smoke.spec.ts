@@ -13,6 +13,7 @@ test.describe('GuitarCoach MVP', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: /Guten (Morgen|Tag|Abend)/ })).toBeVisible();
     await expect(page.getByText('Heutiges Lernziel')).toBeVisible();
+    await expect(page.getByText('Coach-Tipp des Tages')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Gitarre stimmen' }).first()).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible();
   });

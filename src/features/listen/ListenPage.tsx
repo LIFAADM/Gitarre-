@@ -18,6 +18,8 @@ import { TabView, type TabViewHandle } from '@/features/player/TabView';
 import { useEngine } from '@/hooks/useEngine';
 import { usePitchDetection } from '@/hooks/usePitchDetection';
 import { listenResultPhrase, listenTargetPhrase, listenVerdictPhrase } from '@/core/speech/phrases';
+import { ListenCoach, listenResultTip, type CoachTip } from '@/core/coach/coach';
+import { CoachTipCard } from '@/features/coach/CoachTipCard';
 import { sayNow } from '@/hooks/useSpeech';
 import { usePracticeSession } from '@/hooks/usePracticeSession';
 import { useSettings } from '@/hooks/useSettings';
@@ -101,6 +103,18 @@ function ListenSession({ target }: { target: Target }) {
   const advanceTimer = useRef<number | null>(null);
   const tabRef = useRef<TabViewHandle | null>(null);
   const lastVerdictAt = useRef(0);
+  const [coach] = useState(() => new ListenCoach());
+  const [tip, setTip] = useState<CoachTip | null>(null);
+  const lastSignalAt = useRef(0);
+  const coachOn = settings.coachTips;
+  const offerTip = useCallback(
+    (t: CoachTip | null): void => {
+      if (!t || !coachOn) return;
+      setTip(t);
+      void sayNow('tips', t.spoken ?? t.text, { interrupt: false });
+    },
+    [coachOn],
+  );
 
   // Der Hook startet nicht automatisch; Start/Stopp erfolgen explizit über die Schaltflächen.
   const detection = usePitchDetection({ enabled: true, sensitivity: settings.tunerSensitivity, a4Hz: settings.a4Hz, minStableMs: settings.listenMinStableMs });
@@ -143,6 +157,11 @@ function ListenSession({ target }: { target: Target }) {
     setFinished(true);
     const s = summarizeResults(results);
     void sayNow('listen', listenResultPhrase(s.correct, s.total));
+    const hardBars = results
+      .map((r, i) => (r === 'skipped' ? plan.beats[steps[i]?.beatRef ?? -1]?.instanceIndex : undefined))
+      .filter((x): x is number => x !== undefined)
+      .map((inst) => (plan.barInstances[inst]?.barIndex ?? inst) + 1);
+    offerTip(listenResultTip(s.correct, s.total, hardBars));
     await flush();
     const repo = new ProgressRepository();
     if (target.songId && s.total > 0) await repo.updateSongProgress(target.songId, { addSec: 0, tempoFactor: 0, accuracy: s.accuracy });
@@ -150,7 +169,7 @@ function ListenSession({ target }: { target: Target }) {
       const existing = await getDb().lessonProgress.get(lessonId);
       if (existing) await getDb().lessonProgress.update(lessonId, { bestAccuracy: Math.max(existing.bestAccuracy ?? 0, s.accuracy) });
     }
-  }, [results, flush, target.songId, lessonId, detection]);
+  }, [results, flush, target.songId, lessonId, detection, plan, steps, offerTip]);
 
   const goTo = useCallback(
     (next: number) => {
@@ -169,17 +188,19 @@ function ListenSession({ target }: { target: Target }) {
   );
 
   // Auswertung der Tonerkennung: reagiert auf neue Messwerte des Mikrofon-Hooks (ereignisgesteuert, daher setState im Effekt beabsichtigt).
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!running || !current || finished) return;
     const now = performance.now();
     const pitch = detection.pitch;
+    if (detection.level >= 0.004 || pitch) lastSignalAt.current = now;
+    else if (lastSignalAt.current > 0) offerTip(coach.noSignal(now - lastSignalAt.current, now));
     const armed = gate.current.update(detection.level, now, pitch !== null);
     if (!armed || !pitch || !pitch.stable) return;
     if (advanceTimer.current !== null) return;
     const v = evaluatePitch(current.midis, { midi: pitch.midi, cents: pitch.cents }, settings.listenToleranceCents);
     if (v.kind === 'match') {
       setVerdict(v);
+      offerTip(coach.observe({ verdict: { kind: 'match' }, expected: current.positions }, now));
       setResults((r) => r.map((x, i) => (i === index ? 'correct' : x)));
       gate.current.disarm(detection.level);
       lastVerdictAt.current = now;
@@ -191,12 +212,12 @@ function ListenSession({ target }: { target: Target }) {
       }
     } else if (now - lastVerdictAt.current > 350) {
       setVerdict(v);
+      offerTip(coach.observe({ verdict: v.kind === 'near' ? { kind: 'near', direction: v.direction, cents: v.cents } : v.kind === 'octave' ? { kind: 'octave' } : { kind: 'wrong', midi: v.midi }, expected: current.positions }, now));
       setWrongStreak((n) => n + 1);
       gate.current.disarm(detection.level);
       lastVerdictAt.current = now;
     }
-  }, [detection.pitch, detection.level, running, current, index, settings.listenToleranceCents, autoAdvance, goTo, finished]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [detection.pitch, detection.level, running, current, index, settings.listenToleranceCents, autoAdvance, goTo, finished, coach, offerTip]);
 
   useEffect(
     () => () => {
@@ -220,6 +241,7 @@ function ListenSession({ target }: { target: Target }) {
     await unlockAudio();
     setFinished(false);
     setRunning(true);
+    lastSignalAt.current = performance.now();
     await detection.start();
   };
 
@@ -232,6 +254,8 @@ function ListenSession({ target }: { target: Target }) {
     setResults(steps.map(() => 'pending'));
     setFinished(false);
     setVerdict(null);
+    setTip(null);
+    coach.reset();
     goTo(0);
   };
 
@@ -307,6 +331,8 @@ function ListenSession({ target }: { target: Target }) {
             </div>
           )}
         </div>
+
+        <CoachTipCard tip={tip} onDismiss={() => setTip(null)} />
 
         {current && (
           <div className="rounded-card border border-border/70 bg-surface p-2">

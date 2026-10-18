@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, Info, Mic, Share, Trash, Upload, Volume2 } from 'lucide-react';
+import { Download, Info, Lightbulb, Mic, Share, Trash, Upload, Volume2 } from 'lucide-react';
 import { Button, Card, PageHeader, Segmented, Sheet, Slider, Toggle, useToast } from '@/components/ui';
 import { createBackup, deleteAllData, parseBackup, resetProgress, restoreBackup } from '@/core/storage/backup';
 import { listGermanVoices, subscribeVoices, type SpeechVoiceInfo } from '@/core/speech/speech';
@@ -155,6 +155,13 @@ export function SettingsPage() {
 
         <Card>
           <h2 className="flex items-center gap-2 text-base font-bold">
+            <Lightbulb size={18} className="text-gold" /> Coach-Tipps
+          </h2>
+          <Toggle checked={settings.coachTips} onChange={(v) => void update({ coachTips: v })} label="Tipps anzeigen" description="Situationsbezogene Hinweise aus deinen Messwerten: im Stimmgerät (Überdrehen, zurückrutschende Saite), im Spiel-mit-Modus (ein Bund daneben, Nachbarsaite, Fingerdruck), nach Durchläufen im Player und ein Tipp des Tages auf der Startseite." />
+        </Card>
+
+        <Card>
+          <h2 className="flex items-center gap-2 text-base font-bold">
             <Volume2 size={18} className="text-gold" /> Sprachbegleitung
           </h2>
           {!speech.supported ? (
@@ -186,6 +193,7 @@ export function SettingsPage() {
                 <Toggle checked={settings.speechListen} onChange={(v) => void update({ speechListen: v })} disabled={!settings.speechEnabled} label="Spiel mit ansagen" description="Nächster Ton mit Saite und Bund, Rückmeldung und Ergebnis." />
                 <Toggle checked={settings.speechCountIn} onChange={(v) => void update({ speechCountIn: v })} disabled={!settings.speechEnabled} label="Einzähler mitsprechen" description="„Eins, zwei, drei, vier“ zu den Klicks vor dem Start (Metronom und Einzähler an)." />
                 <Toggle checked={settings.speechPlayer} onChange={(v) => void update({ speechPlayer: v })} disabled={!settings.speechEnabled} label="Abschnitte im Player ansagen" description="Sagt Abschnittsnamen wie „Refrain“ an, wenn der Song welche enthält." />
+                <Toggle checked={settings.speechTips} onChange={(v) => void update({ speechTips: v })} disabled={!settings.speechEnabled || !settings.coachTips} label="Coach-Tipps vorlesen" description="Tipps werden gesprochen, sobald sie erscheinen." />
               </div>
             </>
           )}

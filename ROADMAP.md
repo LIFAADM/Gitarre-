@@ -15,7 +15,7 @@ Siehe STATUS.md.
 5. **Text-Tab-Import**: Mehrstimmigkeit, Rhythmuszeilen über der Tab auswerten, Dauer-Korrektur direkt in der Vorschau.
 6. **Mehrspurigkeit**: Solo/Mute je Spur, Spurlautstärken speichern, Begleitspuren im Mitspielmodus mit Original mischen.
 7. **Erweiterte Lernkontrolle**: Rhythmus-Bewertung (zu früh/zu spät relativ zum Metronom), Akkorderkennung (Mehrton-Analyse), Verlauf der Trefferquote pro Takt („Heatmap“).
-7a. **Sprachbegleitung ausbauen**: kurze Hinweise bei wiederholten Fehlern („Finger näher an den Bundstab“), vorgelesene Tagesplan-Zusammenfassung, Sprachausgabe für „Tabs verstehen“; Spracheingabe nur, wenn eine rein lokale Erkennung ohne Serverkontakt verfügbar ist.
+7a. **Sprachbegleitung und Coach ausbauen**: vorgelesene Tagesplan-Zusammenfassung, Sprachausgabe für „Tabs verstehen“, Coach-Tipps zu Rhythmus (sobald Rhythmus-Bewertung existiert) und zu Akkordgriffen; Spracheingabe nur, wenn eine rein lokale Erkennung ohne Serverkontakt verfügbar ist.
 8. **Lernplan-Feinschliff**: Wochenplan, Erinnerungen (Web-Push erst mit Capacitor), adaptive Vorschläge aus Fehlerstatistik.
 9. **Weitere Lernstufen und Inhalte**: Kapitel zu Akkordbegleitung, Barré, Lagenwechsel; mehr gemeinfreie Lieder (Volkslieder, Klassik-Etüden).
 

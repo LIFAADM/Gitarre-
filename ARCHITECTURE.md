@@ -16,6 +16,7 @@ src/
     content/      Eingebaute Songs (Arrangements), Übungen, Lektionen, Lernziele, Seeding
     progress/     Statistiken, Empfehlungen, Erfolge (regelbasiert)
     speech/       Sprachbegleitung: Textbausteine (reine Funktionen, getestet) und Web-Speech-Kapselung
+    coach/        Coach-Tipps: regelbasierte Hinweise aus Messwerten (ListenCoach, TunerCoach, Player-/Tagestipps)
   features/       Seiten und Feature-Komponenten (Dashboard, Tuner, Griffbrett, Metronom, Songs, Player, Lektionen, Üben, Spiel mit, Editor, Fortschritt, Einstellungen)
   hooks/          React-Hooks (Settings, Engine, Übungssitzungen, Pitch-Detection, Sprache, Live-Daten)
 ```
@@ -71,6 +72,11 @@ Nur gemeinfreie Lieder (eigene Arrangements) und eigene Übungen sind enthalten.
 - Einzähler: `TabPlayer.onCountIn` meldet Anzahl, Abstand und Audio-Zeit des ersten Klicks; der `SongPlayer` plant die Zählworte per Timer mit kleinem Vorlauf. Sprachausgabe lässt sich nicht an die Audio-Uhr binden, daher bleibt eine Schwankung von einigen zehn Millisekunden.
 - Einstellungen: Hauptschalter, Tempo, Stimme und ein Schalter je Bereich; `sayNow(scope, text)` liest die Einstellungen beim Aufruf und ist damit referenzstabil für Effekte.
 - Kopfhörer-Steuerung: `core/audio/mediaSession.ts` registriert Media-Session-Handler und spielt dafür eine zur Laufzeit erzeugte stumme WAV-Schleife (iOS zeigt Medien-Steuerung nur für `<audio>`-Elemente). Experimentell, standardmäßig aus.
+
+### Coach-Tipps
+- `core/coach/coach.ts` ist reine Logik ohne React: `ListenCoach.observe()` erhält jede Bewertung des Spiel-mit-Modus samt erwarteter Griffposition und leitet aus der Fehlerhistorie Muster ab (±70 Cent und mehr = ein Bund daneben; Quart/Terz-Abstand = Nachbarsaite; Oktave; Intonation zu tief/hoch auf gegriffenen Tönen; verstimmte Leersaiten; drei Fehler in Folge). `TunerCoach.update()` verfolgt Richtungswechsel je Saite (Überdrehen), zuletzt gestimmte Saiten (Zurückrutschen) und Dauer großer Abweichungen. `TipGate` drosselt (Mindestabstand, jede ID einmal, Lob wiederholbar).
+- Tipps sind Daten (`CoachTip { id, text, spoken?, kind }`); `CoachTipCard` zeigt sie einheitlich mit Vorlesen und Schließen. Sprachausgabe läuft über den Bereich `tips` der Sprachbegleitung und unterbricht laufende Ansagen nicht (`interrupt: false`).
+- Der Tipp des Tages ist deterministisch (Kalendertag modulo Liste), datengetriebene Hinweise aus `Summary` haben Vorrang.
 
 ## Erweiterbarkeit
 - Neue eingebaute Songs/Übungen: `core/content/songs.ts` bzw. `exercises.ts` (Tab-Notation), `CONTENT_VERSION` erhöhen.
