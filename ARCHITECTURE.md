@@ -17,6 +17,7 @@ src/
     progress/     Statistiken, Empfehlungen, Erfolge (regelbasiert)
     speech/       Sprachbegleitung: Textbausteine (reine Funktionen, getestet) und Web-Speech-Kapselung
     coach/        Coach-Tipps: regelbasierte Hinweise aus Messwerten (ListenCoach, TunerCoach, Player-/Tagestipps)
+  features/highway/ Mitspiel-Bahn für Erwachsene: Zeitleiste aus dem Abspielplan, Zeit-Urteil, Takt-Statistik, Seite
   features/kids/  Kinder-Modus: Daten (Farben, Lieder, Rundenlogik, Rhythmus-Bewertung, Elternfrage), Shell, Spiele
   features/       Seiten und Feature-Komponenten (Dashboard, Tuner, Griffbrett, Metronom, Songs, Player, Lektionen, Üben, Spiel mit, Editor, Fortschritt, Einstellungen)
   hooks/          React-Hooks (Settings, Engine, Übungssitzungen, Pitch-Detection, Sprache, Live-Daten)

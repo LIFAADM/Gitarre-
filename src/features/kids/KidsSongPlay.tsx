@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router';
+import { getDb } from '@/core/storage/db';
+import type { SongRecord, SongVersionRecord } from '@/core/storage/types';
+import { kidSongFromScore } from './kidsLibrary';
 import { unlockAudio } from '@/core/audio/audioContext';
 import { playClick } from '@/core/audio/metronome';
 import { countWords } from '@/core/speech/phrases';
@@ -28,10 +32,20 @@ const TEMPOS: { factor: number; emoji: string; label: string }[] = [
 export function KidsSongPlay() {
   const { songId = '' } = useParams();
   const navigate = useNavigate();
-  const song = kidSong(songId);
-  if (!song) {
+  const builtin = kidSong(songId);
+  // Bibliothekslied (Import/Editor): erste Version in der Sortierreihenfolge
+  const record = useLiveQuery<SongRecord | undefined>(async () => (builtin ? undefined : getDb().songs.get(songId)), [songId, builtin]);
+  const versions = useLiveQuery<SongVersionRecord[] | undefined>(async () => (builtin ? [] : getDb().songVersions.where('songId').equals(songId).toArray()), [songId, builtin]);
+  const song = useMemo(() => {
+    if (builtin) return builtin;
+    const v = versions ? [...versions].sort((a, b) => a.order - b.order)[0] : undefined;
+    if (!record || !v) return undefined;
+    return kidSongFromScore(record.id, record.title, v.score);
+  }, [builtin, record, versions]);
+  if (!builtin && (record === undefined || versions === undefined)) return <KidsShell title="Lieder" emoji="🎵" instruction="">{null}</KidsShell>;
+  if (!song || song.notes.length === 0) {
     return (
-      <KidsShell title="Lieder" emoji="🎵" instruction="Dieses Lied gibt es nicht.">
+      <KidsShell title="Lieder" emoji="🎵" instruction="Dieses Lied hat noch keine Noten.">
         <KidsButton emoji="🏠" label="Zurück" onClick={() => navigate('/kinder/lieder')} />
       </KidsShell>
     );

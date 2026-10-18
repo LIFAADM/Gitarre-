@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AudioLines, Download, Dumbbell, Heart, Info, PencilLine, Sparkles, Trash, Upload } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { Badge, Button, Card, EmptyState, IconButton, PageHeader, PressableCard, ProgressBar, Sheet, useToast } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, IconButton, PageHeader, PressableCard, ProgressBar, Sheet, Toggle, useToast } from '@/components/ui';
 import { getExercise } from '@/core/content/exercises';
 import { createSongFile } from '@/core/import/gcjson';
 import { getDb } from '@/core/storage/db';
@@ -137,7 +137,7 @@ export function SongPage() {
         {selected ? (
           <>
             {selected.description && <p className="text-sm text-muted">{selected.description}</p>}
-            <SongPlayer key={selected.id} score={selected.score} songId={song.id} title={song.title} listenHref={`/songs/${song.id}/spiel-mit?version=${selected.id}`} {...(selected.sourceFileId ? { sourceFileId: selected.sourceFileId } : {})} />
+            <SongPlayer key={selected.id} score={selected.score} songId={song.id} title={song.title} listenHref={`/songs/${song.id}/spiel-mit?version=${selected.id}`} highwayHref={`/songs/${song.id}/bahn?version=${selected.id}`} {...(selected.sourceFileId ? { sourceFileId: selected.sourceFileId } : {})} />
           </>
         ) : (
           <EmptyState
@@ -248,7 +248,13 @@ export function SongPage() {
           <dd>{sorted.length === 0 ? 'keine Notendaten' : sorted.map((v) => v.label).join(', ')}</dd>
         </dl>
         {song.notes && <p className="mt-3 rounded-2xl bg-surface-2 p-3 text-sm text-muted">{song.notes}</p>}
-        <div className="mt-4 flex flex-col gap-2">
+        <Toggle
+          checked={song.forKids ?? false}
+          onChange={(v) => void db.songs.update(song.id, { forKids: v })}
+          label="Im Kinder-Modus zeigen"
+          description={sorted.length > 0 ? 'Erscheint bei den Kinderliedern auf der Mitspiel-Bahn (Stimme 1, höchster Ton je Schlag).' : 'Erscheint im Kinder-Modus, sobald Notendaten importiert sind.'}
+        />
+        <div className="mt-2 flex flex-col gap-2">
           <Button variant="secondary" icon={<Upload size={18} />} onClick={() => navigate(`/songs/import?songId=${song.id}`)}>
             Weitere Tab-Datei importieren
           </Button>

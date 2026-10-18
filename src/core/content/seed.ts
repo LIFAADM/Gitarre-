@@ -6,7 +6,7 @@ import { DEFAULT_GOALS } from './goals';
 import { BUILTIN_SONGS, type BuiltinSongDef, type BuiltinVersionDef } from './songs';
 
 /** Bei Änderungen an eingebauten Inhalten erhöhen – vorhandene Einträge werden dann aktualisiert (Nutzerdaten bleiben erhalten). */
-export const CONTENT_VERSION = 1;
+export const CONTENT_VERSION = 2;
 
 export function buildVersionRecord(song: BuiltinSongDef, v: BuiltinVersionDef, order: number): SongVersionRecord {
   const score = parseTabNotation(v.notation, {
@@ -48,6 +48,8 @@ function buildSongRecord(def: BuiltinSongDef, existing?: SongRecord): SongRecord
   if (def.goalTier) record.goalTier = def.goalTier;
   if (def.prepExerciseIds) record.prepExerciseIds = def.prepExerciseIds;
   if (def.notes) record.notes = def.notes;
+  if (existing?.forKids !== undefined) record.forKids = existing.forKids;
+  else if (def.forKids) record.forKids = true;
   if (existing?.lastPlayedAt) record.lastPlayedAt = existing.lastPlayedAt;
   if (existing?.tags) record.tags = existing.tags;
   return record;

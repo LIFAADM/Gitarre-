@@ -26,7 +26,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/cn';
 import { OnsetGate, evaluatePitch, summarizeResults, type ListenStep, type StepResult, type Verdict } from './listenLogic';
 
-interface Target {
+export interface ListenTarget {
   score: Score;
   title: string;
   refId: string;
@@ -34,7 +34,7 @@ interface Target {
   backHref: string;
 }
 
-function useTarget(): { target: Target | null; loading: boolean } {
+export function useListenTarget(): { target: ListenTarget | null; loading: boolean } {
   const { songId, exerciseId } = useParams();
   const [params] = useSearchParams();
   const versionId = params.get('version');
@@ -71,7 +71,7 @@ function buildSteps(plan: PlaybackPlan): ListenStep[] {
 }
 
 export function ListenPage() {
-  const { target, loading } = useTarget();
+  const { target, loading } = useListenTarget();
   if (loading) return <PageHeader title="Spiel mit" back />;
   if (!target) {
     return (
@@ -84,7 +84,7 @@ export function ListenPage() {
   return <ListenSession key={target.refId + target.title} target={target} />;
 }
 
-function ListenSession({ target }: { target: Target }) {
+function ListenSession({ target }: { target: ListenTarget }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const lessonId = params.get('lesson');

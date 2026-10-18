@@ -30,6 +30,7 @@ import { KidsListenGame } from '@/features/kids/KidsListenGame';
 import { KidsSongsPage } from '@/features/kids/KidsSongsPage';
 import { KidsSongPlay } from '@/features/kids/KidsSongPlay';
 import { KidsRhythmGame } from '@/features/kids/KidsRhythmGame';
+import { HighwayPage } from '@/features/highway/HighwayPage';
 import { useSettings } from '@/hooks/useSettings';
 import { NotFoundPage } from './NotFoundPage';
 import { Splash } from './Splash';
@@ -86,10 +87,12 @@ export default function App() {
           <Route path="songs/neu" element={<AddSongPage />} />
           <Route path="songs/:songId" element={<SongPage />} />
           <Route path="songs/:songId/spiel-mit" element={<ListenPage />} />
+          <Route path="songs/:songId/bahn" element={<HighwayPage />} />
           <Route path="songs/:songId/mitspielen" element={<PlayalongPage />} />
           <Route path="ueben" element={<PracticePage />} />
           <Route path="ueben/uebung/:exerciseId" element={<ExercisePage />} />
           <Route path="ueben/uebung/:exerciseId/spiel-mit" element={<ListenPage />} />
+          <Route path="ueben/uebung/:exerciseId/bahn" element={<HighwayPage />} />
           <Route path="werkzeuge" element={<ToolsPage />} />
           <Route path="werkzeuge/stimmgeraet" element={<TunerPage />} />
           <Route path="werkzeuge/griffbrett" element={<FretboardPage />} />

@@ -20,7 +20,7 @@ test.describe('GuitarCoach MVP', () => {
 
   test('Songbibliothek enthält alle Wunsch-Songs mit Status (Test 10)', async ({ page }) => {
     await page.goto('/songs');
-    await expect(page.getByText(/30 Songs · 6 spielbereit · 24 benötigen eine Tab-Datei/)).toBeVisible();
+    await expect(page.getByText(/59 Songs · 6 spielbereit · 53 benötigen eine Tab-Datei/)).toBeVisible();
     for (const title of ['Nothing Else Matters', 'Yesterday', 'Love Me Tender', '99 Luftballons', 'Sweet Child o’ Mine', 'Jingle Bells']) {
       await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
     }
@@ -189,6 +189,21 @@ test.describe('GuitarCoach MVP', () => {
     for (const d of answer) await page.getByRole('button', { name: d, exact: true }).click();
     await page.getByRole('button', { name: 'OK' }).click();
     await expect(page.getByRole('heading', { name: /Guten (Morgen|Tag|Abend)/ })).toBeVisible();
+  });
+
+  test('Mitspiel-Bahn für Songs: Start mit Einzähler, Note überspringen, Ergebnis', async ({ page }) => {
+    await page.goto('/songs/happy-birthday');
+    await page.getByTestId('highway-link').click();
+    await expect(page.getByRole('heading', { name: 'Mitspiel-Bahn' })).toBeVisible();
+    await expect(page.getByTestId('highway-note-0')).toBeVisible();
+    await page.getByRole('radio', { name: '100 %' }).click();
+    await page.getByTestId('highway-start').click();
+    await expect(page.getByTestId('highway-status')).toContainText('Einzähler');
+    await expect(page.getByTestId('highway-status')).toContainText('Jetzt:', { timeout: 15000 });
+    const skip = page.getByTestId('highway-skip');
+    for (let i = 0; i < 40 && (await skip.isVisible()); i++) await skip.click();
+    await expect(page.getByText('Durchlauf beendet')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Zeitpunkt: 0 genau/)).toBeVisible();
   });
 
   test('Sprachbegleitung: Einstellungen bleiben erhalten, Lektion bietet Vorlesen an', async ({ page }) => {

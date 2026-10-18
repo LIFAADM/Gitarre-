@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Ear, Guitar, Hand, ListMusic, Pause, Play, Repeat, SkipBack, Square, Timer, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Ear, Gauge, Guitar, Hand, ListMusic, Pause, Play, Repeat, SkipBack, Square, Timer, ZoomIn, ZoomOut } from 'lucide-react';
 import { Link } from 'react-router';
 import { Badge, Button, IconButton, Segmented, Sheet, Slider, Toggle, useToast } from '@/components/ui';
 import { outputLatencySeconds, unlockAudio } from '@/core/audio/audioContext';
@@ -34,6 +34,8 @@ export interface SongPlayerProps {
   compact?: boolean;
   /** Link zum Spiel-mit-Modus anzeigen. */
   listenHref?: string;
+  /** Link zur Mitspiel-Bahn anzeigen. */
+  highwayHref?: string;
   /** Importdatei (für die Noten-Ansicht aus der Originaldatei). */
   sourceFileId?: string;
   onPlaythroughComplete?: (info: { tempoFactor: number }) => void;
@@ -43,7 +45,7 @@ const TEMPO_PRESETS = [0.25, 0.5, 0.75, 1] as const;
 /** Vorlauf, damit das gesprochene Zählwort ungefähr mit dem Klick zusammenfällt (Sprachausgabe startet verzögert). */
 const SPEECH_LEAD_MS = 80;
 
-export function SongPlayer({ score, songId, title, practiceKind = 'song', practiceRefId, initialTempoFactor, compact = false, listenHref, sourceFileId, onPlaythroughComplete }: SongPlayerProps) {
+export function SongPlayer({ score, songId, title, practiceKind = 'song', practiceRefId, initialTempoFactor, compact = false, listenHref, highwayHref, sourceFileId, onPlaythroughComplete }: SongPlayerProps) {
   const engine = useEngine();
   const { player, synth } = engine;
   const snapshot = usePlayerSnapshot();
@@ -495,10 +497,19 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
             </IconButton>
           </div>
         )}
-        {listenHref && (
-          <Link to={listenHref} className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm font-semibold text-gold">
-            <Ear size={18} /> Spiel mit – GuitarCoach hört zu
-          </Link>
+        {(listenHref || highwayHref) && (
+          <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: listenHref && highwayHref ? '1fr 1fr' : '1fr' }}>
+            {highwayHref && (
+              <Link to={highwayHref} className="flex items-center justify-center gap-2 rounded-2xl bg-gold px-3 py-3 text-sm font-semibold text-[#1b1507]" data-testid="highway-link">
+                <Gauge size={18} /> Mitspiel-Bahn
+              </Link>
+            )}
+            {listenHref && (
+              <Link to={listenHref} className="flex items-center justify-center gap-2 rounded-2xl border border-gold/40 bg-gold/10 px-3 py-3 text-sm font-semibold text-gold">
+                <Ear size={18} /> Spiel mit (Note für Note)
+              </Link>
+            )}
+          </div>
         )}
       </div>
 
