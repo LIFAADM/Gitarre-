@@ -41,6 +41,7 @@ export function ExercisePage() {
           practiceRefId={exercise.id}
           initialTempoFactor={exercise.startTempoPercent ? exercise.startTempoPercent / 100 : 1}
           listenHref={`/ueben/uebung/${exercise.id}/spiel-mit`}
+          highwayHref={`/ueben/uebung/${exercise.id}/bahn`}
         />
         {exercise.tips && exercise.tips.length > 0 && (
           <Card>

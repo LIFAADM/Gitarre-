@@ -10,6 +10,8 @@ export interface NoteHighwayProps {
   getTime: () => number;
   currentIndex: number | null;
   pxPerSec?: number;
+  /** Beschriftung der Spuren (Standard: Saitennummer). */
+  laneLabel?: (stringNumber: number) => string;
 }
 
 const LANE_H = 46;
@@ -19,7 +21,7 @@ const HIT_X = 84;
  * Mitspiel-Bahn: sechs farbige Spuren (dicke rote Saite oben), Noten laufen von rechts auf die Trefflinie zu.
  * Nur die Verschiebung wird pro Bild gesetzt (transform), die Noten selbst werden nicht neu gerendert.
  */
-export function NoteHighway({ notes, results, getTime, currentIndex, pxPerSec = 150 }: NoteHighwayProps) {
+export function NoteHighway({ notes, results, getTime, currentIndex, pxPerSec = 150, laneLabel }: NoteHighwayProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function NoteHighway({ notes, results, getTime, currentIndex, pxPerSec = 
       {KIDS_STRINGS.map((s) => (
         <div key={s.number} className="absolute inset-x-0 flex items-center" style={{ top: laneTop(s.number) + 4, height: LANE_H - 4, background: `${s.color}22`, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <span className="ml-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-extrabold text-white shadow" style={{ backgroundColor: s.color }} aria-hidden>
-            {s.number}
+            {laneLabel ? laneLabel(s.number) : s.number}
           </span>
         </div>
       ))}

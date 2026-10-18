@@ -18,6 +18,8 @@ export interface HighwayNote {
   time: number;
   durationSec: number;
   midi: number;
+  /** Weitere zulässige Töne (Akkord: jeder Ton zählt). */
+  midis?: number[];
   string: number;
   fret: number;
 }
@@ -131,7 +133,7 @@ export class HighwayEngine {
       const n = this.notes[this.nextIdx];
       if (!n) return null;
       if (!this.waiting && this.songTime < n.time - this.early) return null;
-      if (!this.matches(n.midi, midi, cents)) return null;
+      if (!this.matchesNote(n, midi, cents)) return null;
       return this.registerHit(this.nextIdx, this.songTime - n.time);
     }
     for (let i = this.nextIdx; i < this.notes.length; i++) {
@@ -139,7 +141,7 @@ export class HighwayEngine {
       if (n.time - this.early > this.songTime) break;
       if (this.results[i] !== 'pending') continue;
       if (this.songTime > n.time + this.late) continue;
-      if (this.matches(n.midi, midi, cents)) return this.registerHit(i, this.songTime - n.time);
+      if (this.matchesNote(n, midi, cents)) return this.registerHit(i, this.songTime - n.time);
     }
     return null;
   }
@@ -156,8 +158,8 @@ export class HighwayEngine {
     return { type: 'miss', index: n.index };
   }
 
-  private matches(expectedMidi: number, midi: number, cents: number): boolean {
-    const v = evaluatePitch([expectedMidi], { midi, cents }, this.tolerance);
+  private matchesNote(n: HighwayNote, midi: number, cents: number): boolean {
+    const v = evaluatePitch(n.midis ?? [n.midi], { midi, cents }, this.tolerance);
     return v.kind === 'match' || v.kind === 'octave';
   }
 

@@ -10,6 +10,7 @@ export type Genre =
   | 'Weihnachten'
   | 'Geburtstag'
   | 'Kinderlied / Volkslied'
+  | 'Kinder-Hits (Film & Hörspiel)'
   | 'Übung'
   | 'Eigene'
   | 'Sonstiges';
@@ -23,6 +24,7 @@ export const GENRES: Genre[] = [
   'Weihnachten',
   'Geburtstag',
   'Kinderlied / Volkslied',
+  'Kinder-Hits (Film & Hörspiel)',
   'Übung',
   'Eigene',
   'Sonstiges',
@@ -63,6 +65,8 @@ export interface SongRecord {
   prepExerciseIds?: string[];
   notes?: string;
   tags?: string[];
+  /** Im Kinder-Modus (Mitspiel-Bahn) anbieten, sobald Notendaten vorliegen. */
+  forKids?: boolean;
 }
 
 export interface SongVersionRecord {

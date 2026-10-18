@@ -13,7 +13,7 @@ describe('Eingebaute Songs', () => {
     for (const t of ['Love Me Tender', 'Jailhouse Rock', 'Yesterday', 'Come Together', 'Nothing Else Matters', 'One', '99 Luftballons', 'Der Kommissar', 'Sweet Child o’ Mine', 'Wonderwall', 'Jingle Bells', 'Stille Nacht', 'Last Christmas', 'Happy Birthday']) {
       expect(titles).toContain(t);
     }
-    expect(BUILTIN_SONGS).toHaveLength(30);
+    expect(BUILTIN_SONGS).toHaveLength(59);
   });
 
   it('alle gemeinfreien Lieder haben gültige, vollständige Arrangements', () => {
@@ -34,7 +34,7 @@ describe('Eingebaute Songs', () => {
 
   it('geschützte Songs haben Importstatus und Vorübungen', () => {
     const protectedSongs = BUILTIN_SONGS.filter((s) => s.rightsStatus === 'needs-import');
-    expect(protectedSongs).toHaveLength(24);
+    expect(protectedSongs).toHaveLength(53);
     const exerciseIds = new Set(EXERCISES.map((e) => e.id));
     for (const s of protectedSongs) {
       expect(s.versions).toHaveLength(0);
@@ -62,7 +62,7 @@ describe('Eingebaute Songs', () => {
   it('Seeding legt Songs an und ist idempotent', async () => {
     const db = createTestDb(`seed-${Date.now()}`);
     const first = await seedDatabase(db);
-    expect(first.created).toBe(30);
+    expect(first.created).toBe(59);
     expect(await db.songVersions.count()).toBe(14);
     await db.songs.update('happy-birthday', { isFavorite: true });
     const second = await seedDatabase(db);

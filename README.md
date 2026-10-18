@@ -12,6 +12,8 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 - 🎧 **Mitspielmodus** mit eigener Aufnahme (MP3/WAV/M4A): Zeitmarken setzen, Tabs laufen synchron, Abschnitte wiederholen, Tempo reduzieren
 - 🎼 **Mehrspurige Wiedergabe**: Begleitspuren eines Imports leiser mitspielen lassen
 - 👂 **„Spiel mit – GuitarCoach hört zu“**: Mikrofon-Lernkontrolle Note für Note (grün/gelb/rot, Toleranz einstellbar)
+- 🛣️ **Mitspiel-Bahn (wie Yousician)** für jeden Song und jede Übung: Noten laufen auf farbigen Saitenspuren zur Trefflinie, das Mikrofon wertet Ton und Zeitpunkt („genau“, „zu früh“, „zu spät“), Modus „Wartet auf dich“ oder „Im Takt“, Tempo 25–100 %, Ergebnis mit schwächsten Takten, Fortschritt wird gespeichert
+- 🎬 **Kinder-Hits aus Film und Hörspiel**: „Die Schule der magischen Tiere“ (Filme 1–4), „Bibi & Tina“ und „Eule findet den Beat“ sind mit echten Titeln in der Bibliothek – als geschützte Werke ohne mitgelieferte Noten; nach dem Import einer eigenen Tab-Datei (oder Eingabe im Editor) laufen sie im Player, auf der Bahn und im Kinder-Modus
 - 🗣️ **Sprachbegleitung** mit der deutschen Systemstimme (offline): Lektionen vorlesen, Stimmgerät-Ansagen („E-Saite, zu tief“), Ziel-Ton und Rückmeldung im Spiel-mit-Modus, gesprochener Einzähler, Abschnittsansagen – alles einzeln abschaltbar
 - 🧒 **Kinder-Modus (ab 4 Jahren)**: eigene Oberfläche ohne Lesen – riesige Tasten, Saiten als Regenbogenfarben, gesprochene Anleitungen; Spiele „Saiten“, „Welche Saite?“ (Hören und Nachspielen per Mikrofon oder Antippen), sechs Kinderlieder in der ersten Lage auf einer **Mitspiel-Bahn wie bei Yousician** (Noten laufen auf farbigen Spuren zur Trefflinie, gespielt wird an der echten Gitarre, das Mikrofon wertet Ton und Zeitpunkt; „Wartet auf dich“ oder „Im Takt“, drei Tempi) und „Klatschen“ im Takt; Sterne als Belohnung, Elternsperre per Rechenaufgabe
 - 💡 **Coach-Tipps** aus echten Messwerten: im Spiel-mit-Modus („ein Bund daneben“, „Nachbarsaite“, „dichter hinter dem Bundstäbchen drücken“, „leere Saiten nachstimmen“), im Stimmgerät (Überdrehen, zurückrutschende Saite, zu zaghaft gedreht), nach Durchläufen im Player (nächster Temposchritt) und ein Tipp des Tages auf der Startseite – angezeigt und auf Wunsch vorgelesen
@@ -29,7 +31,7 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 | Speicher | IndexedDB via Dexie 4 (LocalStorage nur für Kleinstwerte) |
 | Offline | vite-plugin-pwa / Workbox (Precache aller App-Dateien inkl. Beispieldateien) |
 | Sprache | Web Speech API (`speechSynthesis`, Systemstimme, offline); Media Session API für Kopfhörer-Tasten (experimentell) |
-| Tests | Vitest + Testing Library (211 Unit-/Komponententests), Playwright (18 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
+| Tests | Vitest + Testing Library (215 Unit-/Komponententests), Playwright (19 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
 | CI/Deployment | GitHub Actions: Typprüfung, Lint, Tests, Build, E2E; GitHub-Pages-Deployment mit HTTPS |
 | Native App | Capacitor-Konfiguration vorbereitet (iOS) |
 

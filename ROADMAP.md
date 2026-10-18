@@ -16,7 +16,7 @@ Siehe STATUS.md.
 6. **Mehrspurigkeit**: Solo/Mute je Spur, Spurlautstärken speichern, Begleitspuren im Mitspielmodus mit Original mischen.
 7. **Erweiterte Lernkontrolle**: Rhythmus-Bewertung (zu früh/zu spät relativ zum Metronom), Akkorderkennung (Mehrton-Analyse), Verlauf der Trefferquote pro Takt („Heatmap“).
 7a. **Sprachbegleitung und Coach ausbauen**: vorgelesene Tagesplan-Zusammenfassung, Sprachausgabe für „Tabs verstehen“, Coach-Tipps zu Rhythmus (sobald Rhythmus-Bewertung existiert) und zu Akkordgriffen; Spracheingabe nur, wenn eine rein lokale Erkennung ohne Serverkontakt verfügbar ist.
-7c. **Mitspiel-Bahn für Erwachsene**: dieselbe Engine (`highwayEngine`) für alle Songs der Bibliothek im Player anbieten (Tab- oder Bahn-Ansicht), mit Rhythmus-Urteil zu früh/zu spät und Trefferquote pro Takt.
+7c. **Mitspiel-Bahn ausbauen**: Tabulatur synchron unter der Bahn, Schleife für schwache Takte direkt aus dem Ergebnis, Begleitspuren ohne Melodie als Playback (sobald das Mikrofon die Ausgabe sicher ausblenden kann), Verlauf der Trefferquote je Takt über mehrere Durchläufe.
 7b. **Kinder-Modus ausbauen**: mehr Lieder ohne Greifen (Leersaiten-Melodien), Aufnahme eigener Elternstimme für Anleitungen, Belohnungsbilder statt nur Sterne, Zeitbegrenzung pro Sitzung für Eltern, Linkshänder-Darstellung der Farbbalken.
 8. **Lernplan-Feinschliff**: Wochenplan, Erinnerungen (Web-Push erst mit Capacitor), adaptive Vorschläge aus Fehlerstatistik.
 9. **Weitere Lernstufen und Inhalte**: Kapitel zu Akkordbegleitung, Barré, Lagenwechsel; mehr gemeinfreie Lieder (Volkslieder, Klassik-Etüden).
