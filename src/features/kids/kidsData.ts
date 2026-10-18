@@ -114,6 +114,30 @@ export const KIDS_SONGS: readonly KidSong[] = [
       C(), Glow(), C(2), C(), Glow(), C(2),
     ],
   },
+  {
+    id: 'weihnachtsmann',
+    title: 'Morgen kommt der Weihnachtsmann',
+    emoji: '🎅',
+    tempo: 80,
+    notes: [
+      C(), C(), G(), G(), A(), A(), G(2),
+      F(), F(), E(), E(), D(), D(), C(2),
+      G(), G(), F(), F(), E(), E(), D(2),
+      G(), G(), F(), F(), E(), E(), D(2),
+      C(), C(), G(), G(), A(), A(), G(2),
+      F(), F(), E(), E(), D(), D(), C(2),
+    ],
+  },
+  {
+    id: 'freude',
+    title: 'Freude, schöner Götterfunken',
+    emoji: '🎼',
+    tempo: 84,
+    notes: [
+      E(), E(), F(), G(), G(), F(), E(), D(), C(), C(), D(), E(), E(1.5), D(0.5), D(2),
+      E(), E(), F(), G(), G(), F(), E(), D(), C(), C(), D(), E(), D(1.5), C(0.5), C(2),
+    ],
+  },
 ];
 
 export function kidSong(id: string): KidSong | undefined {

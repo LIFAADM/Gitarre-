@@ -82,6 +82,7 @@ Nur gemeinfreie Lieder (eigene Arrangements) und eigene Übungen sind enthalten.
 ### Kinder-Modus
 - Eigene Shell (`KidsShell`) statt der normalen Seitenstruktur: großer Zurück-/Lautsprecher-Knopf, Sternezähler, Elternsperre; die App-Hülle blendet unter `/kinder` die untere Navigation aus. `settings.kidsMode` leitet die Startroute um, damit ein Kind nach dem Neuladen nicht in der Erwachsenen-App landet.
 - `kidsData.ts` ist reine Logik: Saitenfarben, vier Lieder als `{string, fret, beats}` in erster Lage (Korrektheit der Melodien per Test gegen Notennamen geprüft), `makeListenRound` mit injizierbarem Zufall, `rhythmScore` (greedy, jeder Anschlag zählt einmal), `starsFor`, `parentQuestion`.
+- `highwayEngine.ts` ist die Zeitsteuerung der Mitspiel-Bahn: `tick(realSec)` treibt eine Liedzeit voran (im Wartemodus steht sie an der nächsten Note), `onPitch(midi, cents)` prüft erkannte Töne gegen das Fenster der offenen Noten, `skip()` für die Eltern-Taste; Ereignisse `wait`/`hit`/`miss`/`end`. `NoteHighway` rendert die Noten einmal und verschiebt pro Bild nur die Spur (`transform`), damit auch lange Lieder flüssig laufen.
 - Die Spiele nutzen dieselbe Signalkette wie die Erwachsenen-App (`usePitchDetection`, `OnsetGate`, `evaluatePitch`, `detectClosestString`) mit großzügigeren Toleranzen; das Klatsch-Spiel liest Schlagphase und Fortschritt aus `Metronome.currentBeat()` statt eigene Zeitrechnung zu führen.
 - Sterne liegen im `meta`-Speicher (`kidsProgress`), damit kein Schemawechsel nötig war; sie sind nicht Teil der JSON-Sicherung.
 
