@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Route, Routes } from 'react-router';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { ToastProvider } from '@/components/ui';
+import { primeSpeech } from '@/core/speech/speech';
 import { AppShell } from './AppShell';
 import { bootstrapApp, describeBootstrapError, type BootstrapState } from './bootstrap';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
@@ -42,6 +43,16 @@ export default function App() {
       });
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // iOS lässt Sprachausgabe erst nach einer Berührung zu – einmalig mit der ersten Geste freischalten.
+  useEffect(() => {
+    const prime = (): void => primeSpeech();
+    const events = ['touchend', 'click', 'keydown'] as const;
+    for (const e of events) window.addEventListener(e, prime, { once: true, passive: true });
+    return () => {
+      for (const e of events) window.removeEventListener(e, prime);
     };
   }, []);
 

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, Info, Mic, Share, Trash, Upload } from 'lucide-react';
+import { Download, Info, Mic, Share, Trash, Upload, Volume2 } from 'lucide-react';
 import { Button, Card, PageHeader, Segmented, Sheet, Slider, Toggle, useToast } from '@/components/ui';
 import { createBackup, deleteAllData, parseBackup, resetProgress, restoreBackup } from '@/core/storage/backup';
+import { listGermanVoices, subscribeVoices, type SpeechVoiceInfo } from '@/core/speech/speech';
 import { DEFAULT_SETTINGS } from '@/core/storage/settings';
 import { downloadTextFile } from '@/features/songs/songUtils';
 import { useSettings } from '@/hooks/useSettings';
+import { useSpeech } from '@/hooks/useSpeech';
 import { formatBytes } from '@/lib/format';
 
 const LICENSES = [
@@ -25,6 +27,11 @@ export function SettingsPage() {
   const [confirm, setConfirm] = useState<'progress' | 'all' | null>(null);
   const [licensesOpen, setLicensesOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const speech = useSpeech();
+  const [voices, setVoices] = useState<SpeechVoiceInfo[]>(() => listGermanVoices());
+
+  // Stimmen werden in manchen Browsern erst nachgeladen.
+  useEffect(() => subscribeVoices(() => setVoices(listGermanVoices())), []);
 
   useEffect(() => {
     if (navigator.storage?.estimate) {
@@ -144,6 +151,47 @@ export function SettingsPage() {
           <h2 className="text-base font-bold">Spiel mit – Lernkontrolle</h2>
           <Slider label="Toleranz für „richtig“" value={settings.listenToleranceCents} min={10} max={60} step={5} onChange={(v) => void update({ listenToleranceCents: v })} format={(v) => `± ${v} Cent`} />
           <Slider label="Mindestdauer eines stabilen Tons" value={settings.listenMinStableMs} min={60} max={400} step={20} onChange={(v) => void update({ listenMinStableMs: v })} format={(v) => `${v} ms`} />
+        </Card>
+
+        <Card>
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            <Volume2 size={18} className="text-gold" /> Sprachbegleitung
+          </h2>
+          {!speech.supported ? (
+            <p className="mt-1 text-sm text-muted">Dieser Browser bietet keine Sprachausgabe an.</p>
+          ) : (
+            <>
+              <Toggle checked={settings.speechEnabled} onChange={(v) => void update({ speechEnabled: v })} label="Sprachausgabe" description="Deutsche Systemstimme, offline – nichts verlässt das Gerät. Während die App spricht, pausiert die Mikrofon-Auswertung kurz." />
+              <Slider label="Sprechtempo" value={Math.round(settings.speechRate * 100)} min={70} max={130} step={5} onChange={(v) => void update({ speechRate: v / 100 })} format={(v) => `${v} %`} disabled={!settings.speechEnabled} />
+              <label className="mt-3 block">
+                <span className="mb-1 block text-sm text-muted">Stimme</span>
+                <select className={inputClass} value={settings.speechVoiceURI} onChange={(e) => void update({ speechVoiceURI: e.target.value })} disabled={!settings.speechEnabled}>
+                  <option value="">Automatisch (beste deutsche Stimme)</option>
+                  {voices.map((v) => (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      {v.name}
+                      {v.lang !== 'de-DE' ? ` (${v.lang})` : ''}
+                      {v.localService ? '' : ' – benötigt Internet'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {voices.length === 0 && <p className="mt-1 text-xs text-muted">Keine deutsche Stimme gefunden. Auf dem iPhone: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch, dort eine Stimme laden.</p>}
+              <Button className="mt-3" size="sm" variant="outline" icon={<Volume2 size={16} />} disabled={!settings.speechEnabled} onClick={() => void speech.say(null, 'Hallo! Ich bin deine Sprachbegleitung. Eins, zwei, drei, vier.')}>
+                Probe hören
+              </Button>
+              <div className="mt-2 border-t border-border pt-1">
+                <Toggle checked={settings.speechLessons} onChange={(v) => void update({ speechLessons: v })} disabled={!settings.speechEnabled} label="Lektionen vorlesen" description="Knopf „Lektion vorlesen“ in jeder Lektion." />
+                <Toggle checked={settings.speechTuner} onChange={(v) => void update({ speechTuner: v })} disabled={!settings.speechEnabled} label="Stimmgerät ansagen" description="„E-Saite, zu tief“ – „E stimmt“." />
+                <Toggle checked={settings.speechListen} onChange={(v) => void update({ speechListen: v })} disabled={!settings.speechEnabled} label="Spiel mit ansagen" description="Nächster Ton mit Saite und Bund, Rückmeldung und Ergebnis." />
+                <Toggle checked={settings.speechCountIn} onChange={(v) => void update({ speechCountIn: v })} disabled={!settings.speechEnabled} label="Einzähler mitsprechen" description="„Eins, zwei, drei, vier“ zu den Klicks vor dem Start (Metronom und Einzähler an)." />
+                <Toggle checked={settings.speechPlayer} onChange={(v) => void update({ speechPlayer: v })} disabled={!settings.speechEnabled} label="Abschnitte im Player ansagen" description="Sagt Abschnittsnamen wie „Refrain“ an, wenn der Song welche enthält." />
+              </div>
+            </>
+          )}
+          <div className="mt-2 border-t border-border pt-1">
+            <Toggle checked={settings.headsetControls} onChange={(v) => void update({ headsetControls: v })} label="Kopfhörer-Steuerung (experimentell)" description="Play und Pause über die Kopfhörer-Taste und den Sperrbildschirm. Dafür läuft während der Wiedergabe eine stumme Tonspur mit." />
+          </div>
         </Card>
 
         <Card>

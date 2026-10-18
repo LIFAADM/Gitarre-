@@ -28,6 +28,13 @@ export interface LoopRange {
 
 export type PlayerStatus = 'stopped' | 'playing' | 'paused' | 'counting';
 
+/** Ein geplanter Einzähler: `beats` Klicks im Abstand `beatSec`, der erste zur Audio-Zeit `firstClickTime`. */
+export interface CountInInfo {
+  beats: number;
+  beatSec: number;
+  firstClickTime: number;
+}
+
 export interface PlayerSnapshot {
   status: PlayerStatus;
   tempoFactor: number;
@@ -81,6 +88,7 @@ export class TabPlayer {
   private stepCursor: number | null = null;
   private readonly listeners = new Set<(s: PlayerSnapshot) => void>();
   private readonly endListeners = new Set<() => void>();
+  private readonly countInListeners = new Set<(info: CountInInfo) => void>();
 
   constructor(options: TabPlayerOptions) {
     this.clock = options.clock;
@@ -112,6 +120,12 @@ export class TabPlayer {
   onEnded(listener: () => void): () => void {
     this.endListeners.add(listener);
     return () => this.endListeners.delete(listener);
+  }
+
+  /** Meldet jeden Einzähler (z. B. für ein gesprochenes „eins, zwei, drei, vier“). */
+  onCountIn(listener: (info: CountInInfo) => void): () => void {
+    this.countInListeners.add(listener);
+    return () => this.countInListeners.delete(listener);
   }
 
   private notify(): void {
@@ -156,6 +170,7 @@ export class TabPlayer {
         const beatSec = (inst.endSec - inst.startSec) / beats / this.tempoFactor;
         for (let i = 0; i < beats; i++) this.sink.click(now + START_DELAY + i * beatSec, i === 0);
         delay += beats * beatSec;
+        for (const l of this.countInListeners) l({ beats, beatSec, firstClickTime: now + START_DELAY });
       }
     }
     this.stepCursor = null;

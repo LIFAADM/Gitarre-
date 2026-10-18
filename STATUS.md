@@ -23,6 +23,7 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 | Gitarrenschule | 7 Kapitel, 44 Lektionen mit Lernziel, Erklärung, konkreter Übung (Stimmgerät, Griffbrett, Metronom, Übungs-Tab, Lied), Tipps, Selbstkontrolle, Abschluss + Speicherung, nächste Lektion; interaktive Einführung „Tabs verstehen“ (9 Schritte, anklickbare Beispiele) |
 | Übungen | 22 eigene technische Übungen (leere Saiten, p-i-m-a, Wechselschlag, Bund 1–3, Chromatik, Tonleiter, Rhythmus, Riffs, Offbeat, Fingerpicking, Hammer-on/Pull-off, Slide/Vibrato, Pentatonik, Solo) – als Vorübungen zu den geschützten Songs verknüpft |
 | Spiel mit (Phase 2) | Erwartete Note + Griffbrett, Mikrofon-Analyse, grün/gelb/rot, zu tief/zu hoch/Oktave/falsch, Toleranz und Mindestdauer einstellbar, Onset-Erkennung gegen Doppelwertung, Referenzton pausiert Analyse, Überspringen/Zurück/Pausieren, Ergebnis gespeichert (Sitzung, Song-Trefferquote, Lektion) |
+| Sprachbegleitung | Deutsche Systemstimme über die Web Speech API, offline, kein Netz: „Lektion vorlesen“ und „Anweisung vorlesen“ in jeder Lektion (Markdown wird in Sprechtext gewandelt, Abkürzungen und Saitenfolgen ausgeschrieben), Stimmgerät-Ansagen erst bei stabiler Messung und ohne Wiederholung („E-Saite, zu tief“, „E stimmt“, „Alle sechs Saiten gestimmt“), Spiel-mit-Modus sagt Ziel-Ton mit Saite und Bund an, bewertet hörbar („Richtig“, „Fast, etwas zu tief“, „Falsch, das war Gis“) und liest das Ergebnis vor, gesprochener Einzähler „eins, zwei, drei, vier“ synchron zu den Klicks, Abschnittsansagen („Refrain“) im Player; Sprechtempo und Stimme wählbar, jeder Bereich einzeln abschaltbar; während die App spricht, wertet die Tonhöhenerkennung nichts aus (plus 350 ms Nachlauf), damit die eigene Stimme nicht als Ton zählt |
 | Üben/Lernplan | Tagesplan (Stimmen/Fingerübungen/Technik/Song, skaliert aus Tagesziel) mit echten Minuten, Wochenziel, Wiederholungsbedarf aus schwachen Trefferquoten, Übungsbibliothek |
 | Fortschritt | Minuten gesamt/heute/Woche, Übungstage, Serie, 7-Tage-Diagramm, 30-Tage-Summe, Bestleistungen, Lernziele (vorgegeben + eigene), 8 Erfolge mit Datum, schwierige Passagen, Sitzungsliste |
 | Tab-Editor (Phase 3) | Griffbrett-Eingabe, Notenlängen, Punktierung, Pausen, Akkorde, Cursor, Verschieben, Löschen, Abspielen, Speichern als Song, Wieder öffnen, Export als GuitarCoach-JSON (Import über Import-Seite) |
@@ -39,6 +40,8 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 - **Text-Tab-Import** schätzt Notenlängen aus Zeichenabständen (häufigster Abstand = gewählte Grundlänge); bei unregelmäßig gesetzten Tabs ist Nacharbeit im Editor nötig. Mehrstimmige Text-Tabs werden auf eine Stimme reduziert.
 - **Mitspielmodus** synchronisiert ausschließlich manuell über Zeitmarken; `playbackRate` unter 100 % hält die Tonhöhe nur, wenn der Browser `preservesPitch` unterstützt (Safari ab 15 ja).
 - **Capacitor** ist konfiguriert, die native iOS-App wurde ohne Mac/Xcode nicht gebaut.
+- **Sprachbegleitung** hängt von den installierten Systemstimmen ab (iOS: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch; eine „erweiterte“ Stimme klingt deutlich besser). Die Zählworte des Einzählers starten per Timer etwa 80 ms vor dem Klick; die tatsächliche Verzögerung der Sprachausgabe schwankt je nach Gerät um einige zehn Millisekunden. Spracheingabe (Befehle per Stimme) ist bewusst nicht enthalten: Safari würde die Aufnahme an Apple-Server schicken, was der Regel „kein Mikrofon-Ton verlässt das Gerät“ widerspricht.
+- **Kopfhörer-Steuerung** (Media Session API) ist als experimentell gekennzeichnet: iOS zeigt Medien-Steuerung nur, wenn ein `<audio>`-Element spielt, daher läuft bei aktivierter Option eine stumme Tonspur mit. Auf echter Hardware noch nicht geprüft.
 - **Automatische Vereinfachung** wählt pro Schlag den höchsten Ton; bei Begleitspuren (Bass) ist das nicht immer die Melodie.
 - **Importierte Rohdateien** werden gespeichert, sind aber nicht Teil der JSON-Sicherung (die daraus erzeugten Noten schon).
 - **Übungszeit** zählt die Zeit auf einer Übungs-/Player-Seite (bei Stimmgerät und Metronom nur bei aktivem Betrieb), nicht die tatsächlich gespielten Töne.
@@ -47,6 +50,7 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 
 - Zerlegung anspruchsvoller Abschnitte in automatisch erzeugte Kurzübungen (die Schleife deckt das manuell ab).
 - Rhythmus-Bewertung (zu früh/zu spät) und Akkorderkennung im Spiel-mit-Modus.
+- Sprachbefehle (Spracheingabe) – siehe Einschränkungen; freihändig bedienbar sind Spiel-mit-Modus (automatisches Weiterschalten) und, experimentell, Play/Pause über Kopfhörer-Tasten.
 - Tatsächlicher Xcode-Build der Capacitor-App (nur auf macOS möglich).
 
 ## Bekannte Einschränkungen
@@ -61,9 +65,9 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 
 - `npm run typecheck`: fehlerfrei
 - `npm run lint`: fehlerfrei
-- `npm test`: 26 Dateien, 162 Tests bestanden
+- `npm test`: 29 Dateien, 162 Tests bestanden
 - `npm run build`: erfolgreich (Precache ca. 3,5 MB inkl. alphaTab-Import und Bravura-Notenschrift)
-- `npm run e2e` (Playwright, iPhone-Viewport in Chromium): 16 Tests bestanden – Dashboard, Bibliothek (Test 10), Happy Birthday mit Tempo 50 % und Einzelton (Tests 3/6), Schleife (Test 7), Guitar-Pro-Import (Test 5), Fortschritt nach Neuladen (Test 8), Gitarrenschule, Griffbrett (Test 2), Metronom, Offline-Betrieb (Test 9), Noten-Ansicht, Vereinfachung, Spiel-mit-Start; mit simuliertem Mikrofon (synthetische Gitarrentöne über Chromiums Fake-Audio-Capture): Stimmgerät erkennt A2 = 110 Hz als richtig gestimmt (Test 1), Spiel-mit-Modus erkennt die gespielten leeren Saiten und zählt Treffer (Test 11)
+- `npm run e2e` (Playwright, iPhone-Viewport in Chromium): 17 Tests bestanden – Dashboard, Bibliothek (Test 10), Happy Birthday mit Tempo 50 % und Einzelton (Tests 3/6), Schleife (Test 7), Guitar-Pro-Import (Test 5), Fortschritt nach Neuladen (Test 8), Gitarrenschule, Griffbrett (Test 2), Metronom, Offline-Betrieb (Test 9), Noten-Ansicht, Vereinfachung, Spiel-mit-Start; mit simuliertem Mikrofon (synthetische Gitarrentöne über Chromiums Fake-Audio-Capture): Stimmgerät erkennt A2 = 110 Hz als richtig gestimmt (Test 1), Spiel-mit-Modus erkennt die gespielten leeren Saiten und zählt Treffer (Test 11)
 - GitHub Actions führt dieselbe Pipeline bei jedem Push aus
 - GitHub-Pages-Deployment: live unter https://lifaadm.github.io/Gitarre-/ (HTTPS, Mikrofon und Installation auf dem Home-Bildschirm möglich). Veröffentlicht wird automatisch bei jedem Push auf `main`; die von GitHub angelegte Umgebungsregel `github-pages` erlaubt nur diesen Branch. Vorher nötig waren: Repository öffentlich stellen (GitHub Free bietet Pages nur dort) und Settings → Pages → Source „GitHub Actions“.
 
@@ -71,6 +75,7 @@ Stand: Phase 1 (MVP) vollständig umgesetzt, dazu wesentliche Teile von Phase 2 
 
 Die Signalkette (Mikrofon → YIN → Stabilisierung → Anzeige/Bewertung) ist automatisiert mit synthetischen Gitarrentönen geprüft. Offen bleibt, was nur echte Hardware zeigt:
 
+0. **Sprachbegleitung**: Stimme und Verständlichkeit der deutschen Systemstimme, Lautstärke im Verhältnis zum Gitarrenklang, Einzähler-Timing zu den Klicks, dass die Mikrofon-Auswertung während der Ansagen wirklich pausiert (keine Fehlwertungen durch die eigene Stimme); Kopfhörer-Taste bei aktivierter experimenteller Option.
 1. **Stimmgerät mit echter Gitarre** (Test 1): Nebengeräusche im Raum, Raumhall, Empfindlichkeitsstufen, Abstand zum iPhone-Mikrofon, tiefe E-Saite bei leisem Anschlag.
 2. **Spiel-mit-Modus** (Test 11): Verhalten bei echten Anschlaggeräuschen, Doppelwertung bei gleichen Folgetönen, ob Toleranz 30 Cent und Mindestdauer 120 ms angenehm sind.
 3. **Lautstärke und Klang** des Synths über iPhone-Lautsprecher und Kopfhörer; Lautstärkebalance Metronom/Gitarre.

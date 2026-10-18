@@ -15,8 +15,9 @@ src/
     storage/      Dexie-Schema, Repositories, Einstellungen, Datensicherung
     content/      Eingebaute Songs (Arrangements), Übungen, Lektionen, Lernziele, Seeding
     progress/     Statistiken, Empfehlungen, Erfolge (regelbasiert)
+    speech/       Sprachbegleitung: Textbausteine (reine Funktionen, getestet) und Web-Speech-Kapselung
   features/       Seiten und Feature-Komponenten (Dashboard, Tuner, Griffbrett, Metronom, Songs, Player, Lektionen, Üben, Spiel mit, Editor, Fortschritt, Einstellungen)
-  hooks/          React-Hooks (Settings, Engine, Übungssitzungen, Pitch-Detection, Live-Daten)
+  hooks/          React-Hooks (Settings, Engine, Übungssitzungen, Pitch-Detection, Sprache, Live-Daten)
 ```
 
 ## Wichtige Entscheidungen
@@ -62,6 +63,14 @@ Der Basis-Pfad ist über `GUITARCOACH_BASE` konfigurierbar (GitHub Pages unter `
 
 ### 14. Rechte
 Nur gemeinfreie Lieder (eigene Arrangements) und eigene Übungen sind enthalten. Geschützte Songs existieren als Bibliothekseinträge mit Status „Tab-Datei nötig“ plus eigenen Vorübungen; Noten kommen ausschließlich per Nutzer-Import.
+
+### Sprachbegleitung (Web Speech API)
+- `core/speech/phrases.ts` enthält ausschließlich reine Funktionen: Markdown → Sprechtext (Abkürzungen, Saitenfolgen, Sonderzeichen ausgeschrieben), aussprechbare Notennamen („Fis“, „Es“), Ordnungszahlen mit Genus („sechste Saite“, „dritter Bund“), Zählworte, sowie `TunerAnnouncer`, der entscheidet, wann das Stimmgerät spricht (Zustand ≥ 500 ms stabil, Mindestabstand 1,5 s, dieselbe Ansage erst nach einer Pause von 500 ms = neuer Anschlag).
+- `core/speech/speech.ts` kapselt `speechSynthesis`: Texte werden in Abschnitte ≤ 220 Zeichen zerlegt (Chrome bricht lange Äußerungen ab), die beste deutsche Stimme wird bewertet (de-DE, lokal, „Enhanced/Premium“, bekannte Namen), fehlende `onend`-Ereignisse werden durch Sicherheits-Timer abgefangen, und `primeSpeech()` schaltet iOS mit der ersten Berührung frei.
+- Mikrofon-Kopplung: `usePitchDetection` fragt `isSpeechBlockingMic()` ab und verwirft Analysen, solange gesprochen wird (plus 350 ms Nachlauf). So kann die App im Stimmgerät und im Spiel-mit-Modus sprechen, ohne sich selbst zu „hören“.
+- Einzähler: `TabPlayer.onCountIn` meldet Anzahl, Abstand und Audio-Zeit des ersten Klicks; der `SongPlayer` plant die Zählworte per Timer mit kleinem Vorlauf. Sprachausgabe lässt sich nicht an die Audio-Uhr binden, daher bleibt eine Schwankung von einigen zehn Millisekunden.
+- Einstellungen: Hauptschalter, Tempo, Stimme und ein Schalter je Bereich; `sayNow(scope, text)` liest die Einstellungen beim Aufruf und ist damit referenzstabil für Effekte.
+- Kopfhörer-Steuerung: `core/audio/mediaSession.ts` registriert Media-Session-Handler und spielt dafür eine zur Laufzeit erzeugte stumme WAV-Schleife (iOS zeigt Medien-Steuerung nur für `<audio>`-Elemente). Experimentell, standardmäßig aus.
 
 ## Erweiterbarkeit
 - Neue eingebaute Songs/Übungen: `core/content/songs.ts` bzw. `exercises.ts` (Tab-Notation), `CONTENT_VERSION` erhöhen.

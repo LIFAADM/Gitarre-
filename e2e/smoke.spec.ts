@@ -152,4 +152,23 @@ test.describe('GuitarCoach MVP', () => {
     await expect(page.getByText(/Nächster Ton: E2/)).toBeVisible();
     await expect(page.getByText('Ton 1 von 12')).toBeVisible();
   });
+
+  test('Sprachbegleitung: Einstellungen bleiben erhalten, Lektion bietet Vorlesen an', async ({ page }) => {
+    await page.goto('/einstellungen');
+    await expect(page.getByRole('heading', { name: 'Sprachbegleitung' })).toBeVisible();
+    const tuner = page.getByRole('switch', { name: /Stimmgerät ansagen/ });
+    await expect(tuner).toHaveAttribute('aria-checked', 'true');
+    await tuner.click();
+    await expect(tuner).toHaveAttribute('aria-checked', 'false');
+    await page.reload();
+    await expect(page.getByRole('switch', { name: /Stimmgerät ansagen/ })).toHaveAttribute('aria-checked', 'false');
+    await page.goto('/lernen/k1-l1-aufbau');
+    await expect(page.getByRole('button', { name: 'Lektion vorlesen' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Anweisung vorlesen' })).toBeVisible();
+    // Hauptschalter aus → Vorlese-Knopf verschwindet
+    await page.goto('/einstellungen');
+    await page.getByRole('switch', { name: /^Sprachausgabe/ }).click();
+    await page.goto('/lernen/k1-l1-aufbau');
+    await expect(page.getByRole('button', { name: 'Lektion vorlesen' })).toHaveCount(0);
+  });
 });

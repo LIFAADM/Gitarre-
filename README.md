@@ -12,6 +12,7 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 - 🎧 **Mitspielmodus** mit eigener Aufnahme (MP3/WAV/M4A): Zeitmarken setzen, Tabs laufen synchron, Abschnitte wiederholen, Tempo reduzieren
 - 🎼 **Mehrspurige Wiedergabe**: Begleitspuren eines Imports leiser mitspielen lassen
 - 👂 **„Spiel mit – GuitarCoach hört zu“**: Mikrofon-Lernkontrolle Note für Note (grün/gelb/rot, Toleranz einstellbar)
+- 🗣️ **Sprachbegleitung** mit der deutschen Systemstimme (offline): Lektionen vorlesen, Stimmgerät-Ansagen („E-Saite, zu tief“), Ziel-Ton und Rückmeldung im Spiel-mit-Modus, gesprochener Einzähler, Abschnittsansagen – alles einzeln abschaltbar
 - ✍️ **Tab-Editor** für eigene Melodien (Griffbrett-Eingabe, Notenlängen, Pausen, Export)
 - 📈 **Dashboard, Lernplan, Statistiken, Lernziele, Erfolge** – alles aus echten Übungsdaten
 - 🔒 Daten bleiben auf dem Gerät (IndexedDB), Sicherung/Wiederherstellung als JSON
@@ -25,7 +26,8 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 | Import | alphaTab 1.8 (Guitar Pro, MusicXML, alphaTex), eigener MIDI-Parser, eigenes JSON-Format |
 | Speicher | IndexedDB via Dexie 4 (LocalStorage nur für Kleinstwerte) |
 | Offline | vite-plugin-pwa / Workbox (Precache aller App-Dateien inkl. Beispieldateien) |
-| Tests | Vitest + Testing Library (162 Unit-/Komponententests), Playwright (16 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
+| Sprache | Web Speech API (`speechSynthesis`, Systemstimme, offline); Media Session API für Kopfhörer-Tasten (experimentell) |
+| Tests | Vitest + Testing Library (184 Unit-/Komponententests), Playwright (17 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
 | CI/Deployment | GitHub Actions: Typprüfung, Lint, Tests, Build, E2E; GitHub-Pages-Deployment mit HTTPS |
 | Native App | Capacitor-Konfiguration vorbereitet (iOS) |
 
