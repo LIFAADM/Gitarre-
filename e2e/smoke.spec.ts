@@ -191,6 +191,33 @@ test.describe('GuitarCoach MVP', () => {
     await expect(page.getByRole('heading', { name: /Guten (Morgen|Tag|Abend)/ })).toBeVisible();
   });
 
+  test('Kinder-Schule: Schritte Erklären, Vormachen, Nachmachen, Freischaltung der nächsten Lektion', async ({ page }) => {
+    await page.goto('/kinder/lernen');
+    await expect(page.getByTestId('kids-lesson-start')).toBeEnabled();
+    await expect(page.getByTestId('kids-lesson-saite-6')).toBeDisabled();
+    await page.getByTestId('kids-next-lesson').click();
+    await page.getByTestId('kids-lesson-start').click();
+    await expect(page.getByText('Erklären')).toBeVisible();
+    await expect(page.getByTestId('kids-step-continue')).toBeEnabled({ timeout: 5000 });
+    await page.getByTestId('kids-step-continue').click();
+    await expect(page.getByTestId('kids-step-continue')).toBeEnabled({ timeout: 5000 });
+    await page.getByTestId('kids-step-continue').click();
+    await expect(page.getByText('Vormachen')).toBeVisible();
+    await expect(page.getByTestId('kids-step-continue')).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('kids-step-continue').click();
+    await expect(page.getByText('Nachmachen')).toBeVisible();
+    // ohne Mikrofon im Test: Eltern-Taste für Nachmachen und Üben
+    await page.getByTestId('kids-step-skip').click();
+    await expect(page.getByText('Üben', { exact: true })).toBeVisible({ timeout: 5000 });
+    await page.getByTestId('kids-step-skip').click();
+    await expect(page.getByTestId('kids-step-continue')).toBeEnabled({ timeout: 5000 });
+    await page.getByTestId('kids-step-continue').click();
+    await expect(page.getByText('Lektion geschafft!')).toBeVisible({ timeout: 5000 });
+    await page.goto('/kinder/lernen');
+    await expect(page.getByTestId('kids-lesson-saite-6')).toBeEnabled();
+    await expect(page.getByTestId('kids-next-lesson')).toContainText('rote Saite');
+  });
+
   test('Mitspiel-Bahn für Songs: Start mit Einzähler, Note überspringen, Ergebnis', async ({ page }) => {
     await page.goto('/songs/happy-birthday');
     await page.getByTestId('highway-link').click();

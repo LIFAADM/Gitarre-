@@ -30,6 +30,8 @@ import { KidsListenGame } from '@/features/kids/KidsListenGame';
 import { KidsSongsPage } from '@/features/kids/KidsSongsPage';
 import { KidsSongPlay } from '@/features/kids/KidsSongPlay';
 import { KidsRhythmGame } from '@/features/kids/KidsRhythmGame';
+import { KidsLessonsPage } from '@/features/kids/KidsLessonsPage';
+import { KidsLessonRunner } from '@/features/kids/KidsLessonRunner';
 import { HighwayPage } from '@/features/highway/HighwayPage';
 import { useSettings } from '@/hooks/useSettings';
 import { NotFoundPage } from './NotFoundPage';
@@ -74,6 +76,8 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={settings.kidsMode ? <Navigate to="/kinder" replace /> : <DashboardPage />} />
           <Route path="kinder" element={<KidsHome />} />
+          <Route path="kinder/lernen" element={<KidsLessonsPage />} />
+          <Route path="kinder/lernen/:lessonId" element={<KidsLessonRunner />} />
           <Route path="kinder/saiten" element={<KidsStringsPage />} />
           <Route path="kinder/hoeren" element={<KidsListenGame />} />
           <Route path="kinder/lieder" element={<KidsSongsPage />} />

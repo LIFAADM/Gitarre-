@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { completeKidsLesson } from './kidsProgress';
 import { getDb } from '@/core/storage/db';
 import type { SongRecord, SongVersionRecord } from '@/core/storage/types';
 import { kidSongFromScore } from './kidsLibrary';
@@ -55,6 +56,8 @@ export function KidsSongPlay() {
 
 function SongSession({ song }: { song: KidSong }) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const lessonId = params.get('lektion');
   const engine = useEngine();
   const [settings] = useSettings();
   const [mode, setMode] = useState<Mode>('idle');
@@ -146,9 +149,10 @@ function SongSession({ song }: { song: KidSong }) {
       setMode('done');
       const stars = starsFor(hw.hits, song.notes.length);
       void addKidsStars('lied', stars, song.id);
+      if (lessonId) void completeKidsLesson(lessonId, Math.max(1, stars));
       void sayNow('kids', `Fertig! ${hw.hits} von ${song.notes.length} Tönen getroffen. ${stars === 3 ? 'Drei Sterne, wunderbar!' : stars === 2 ? 'Zwei Sterne, toll gespielt!' : stars === 1 ? 'Ein Stern. Noch mal?' : 'Probier es langsam noch einmal.'}`);
     },
-    [detection, song.id, song.notes.length],
+    [detection, song.id, song.notes.length, lessonId],
   );
 
   const start = async (): Promise<void> => {
@@ -308,6 +312,7 @@ function SongSession({ song }: { song: KidSong }) {
         <div className="flex flex-col items-center gap-5 pt-2">
           <p className="text-3xl font-extrabold">🎉 Geschafft!</p>
           <StarRow stars={stars} size={56} />
+          {lessonId && <KidsButton emoji="🎓" label="Zurück zur Schule" onClick={() => navigate('/kinder/lernen')} testId="kids-back-to-school" />}
           <KidsButton emoji="🔁" label="Noch mal" onClick={() => void start()} />
           <KidsButton emoji="🎵" label="Andere Lieder" color="#3fbf7f" onClick={() => navigate('/kinder/lieder')} />
         </div>
