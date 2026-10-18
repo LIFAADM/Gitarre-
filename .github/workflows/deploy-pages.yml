@@ -1,0 +1,53 @@
+name: GitHub Pages (HTTPS-Bereitstellung)
+
+# Baut GuitarCoach mit dem Basis-Pfad /<repo>/ und veröffentlicht dist/ auf GitHub Pages.
+# Einmalig von Hand nötig:
+#   1. Das Repository muss öffentlich sein (oder das Konto einen Bezahltarif haben) – für private
+#      Repositories bietet GitHub Free kein Pages an.
+#   2. Settings → Pages → Build and deployment → Source: "GitHub Actions" wählen. Das Standard-Token
+#      des Workflows (GITHUB_TOKEN) darf Pages nicht selbst anlegen, deshalb kein "enablement".
+# Danach über "Run workflow" (beliebiger Branch) oder per Push auf main starten. Die App ist dann
+# unter https://<nutzer>.github.io/<repo>/ erreichbar – mit HTTPS, also inklusive Mikrofon.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build mit Basis-Pfad
+        run: npm run build
+        env:
+          GUITARCOACH_BASE: /${{ github.event.repository.name }}/
+      - name: SPA-Fallback für tiefe Links
+        run: cp dist/index.html dist/404.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
