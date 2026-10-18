@@ -3,6 +3,7 @@ import { getAudioContext, unlockAudio } from '@/core/audio/audioContext';
 import { MIC_MESSAGES, MicrophoneInput, describeMicError, isMicrophoneSupported } from '@/core/audio/mic';
 import { PitchTracker, type TrackedPitch, type TunerSensitivity } from '@/core/audio/pitch/pitchTracker';
 import { detectPitchYin, rms } from '@/core/audio/pitch/yin';
+import { isSpeechBlockingMic } from '@/core/speech/speech';
 
 /**
  * Tonhöhenerkennung über das Mikrofon als React-Hook.
@@ -84,7 +85,8 @@ export function usePitchDetection(options: UsePitchDetectionOptions): PitchDetec
 
     const now = performance.now();
     const level = rms(buffer);
-    if (now < pausedUntilRef.current) tracker.push(null, now);
+    // Pausiert (Referenzton) oder die App spricht gerade: nicht auswerten, sonst zählt die eigene Ausgabe als Ton.
+    if (now < pausedUntilRef.current || isSpeechBlockingMic(now)) tracker.push(null, now);
     else tracker.push(detectPitchYin(buffer, mic.sampleRate), now);
 
     if (now - lastPublishRef.current < PUBLISH_INTERVAL_MS) return;

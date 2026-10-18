@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowRight, BookOpen, Check, CircleCheck, Ear, ExternalLink, Guitar, Lightbulb, Target } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, CircleCheck, Ear, ExternalLink, Guitar, Lightbulb, Square, Target, Volume2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Badge, Button, Card, EmptyState, Markdown, PageHeader, useToast } from '@/components/ui';
 import { getExercise } from '@/core/content/exercises';
@@ -16,6 +16,9 @@ import { TunerWidget } from '@/features/tuner/TunerWidget';
 import { useEngine } from '@/hooks/useEngine';
 import { usePracticeSession } from '@/hooks/usePracticeSession';
 import { useSettings } from '@/hooks/useSettings';
+import { useSpeech } from '@/hooks/useSpeech';
+import { cancelSpeech } from '@/core/speech/speech';
+import { markdownToSpeech } from '@/core/speech/phrases';
 import { unlockAudio } from '@/core/audio/audioContext';
 import { noteNameWithOctave } from '@/core/music/notes';
 import { cn } from '@/lib/cn';
@@ -24,6 +27,7 @@ export function LessonPage() {
   const { lessonId = '' } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const speech = useSpeech();
   const lesson = getLesson(lessonId);
   const chapter = chapterOfLesson(lessonId);
   const next = nextLesson(lessonId);
@@ -41,6 +45,9 @@ export function LessonPage() {
     if (lesson) void repo.touchLesson(lesson.id, 0);
   }, [lesson, repo]);
 
+  // Beim Verlassen oder Lektionswechsel nicht weitersprechen.
+  useEffect(() => () => cancelSpeech(), [lessonId]);
+
   if (!lesson) {
     return (
       <>
@@ -51,6 +58,19 @@ export function LessonPage() {
   }
 
   const done = record?.status === 'done';
+  const canRead = speech.enabled && speech.scopeOn('lessons');
+  const readAloud = (text: string): void => {
+    if (speech.speaking) {
+      speech.cancel();
+      return;
+    }
+    void speech.say('lessons', text);
+  };
+  const lessonSpeechText = (): string => {
+    const parts = [lesson.goal, markdownToSpeech(lesson.content), `Übung: ${lesson.practice}`];
+    if (lesson.tips && lesson.tips.length > 0) parts.push(`Tipps: ${lesson.tips.join(' ')}`);
+    return parts.join(' ');
+  };
   const complete = async (): Promise<void> => {
     const addSec = Math.round(elapsedSec());
     await repo.touchLesson(lesson.id, addSec);
@@ -67,6 +87,11 @@ export function LessonPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gold">Lernziel · ca. {lesson.minutes} Min.</p>
             <p className="text-[15px] font-medium">{lesson.goal}</p>
+            {canRead && (
+              <Button size="sm" variant={speech.speaking ? 'primary' : 'outline'} className="mt-2" icon={speech.speaking ? <Square size={14} /> : <Volume2 size={16} />} onClick={() => readAloud(lessonSpeechText())}>
+                {speech.speaking ? 'Vorlesen stoppen' : 'Lektion vorlesen'}
+              </Button>
+            )}
           </div>
           {done && <Badge tone="ok" icon={<Check size={12} />}>erledigt</Badge>}
         </Card>
@@ -80,6 +105,11 @@ export function LessonPage() {
             <Guitar size={18} className="text-gold" /> Übung
           </h2>
           <p className="mt-1 text-sm text-text/90">{lesson.practice}</p>
+          {canRead && (
+            <Button size="sm" variant="ghost" className="mt-1 -ml-2" icon={<Volume2 size={16} />} onClick={() => readAloud(`Übung: ${lesson.practice}`)}>
+              Anweisung vorlesen
+            </Button>
+          )}
           <div className="mt-3">
             <LessonExerciseBlock lesson={{ id: lesson.id, title: lesson.title }} exercise={lesson.exercise} />
           </div>

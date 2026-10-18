@@ -6,6 +6,8 @@ import { playReferenceTone } from '@/core/audio/guitarSynth';
 import { RMS_GATE, type TrackedPitch } from '@/core/audio/pitch/pitchTracker';
 import { centsBetween, clamp, noteName, octaveOf, type NoteNaming } from '@/core/music/notes';
 import { STANDARD_TUNING, tuningStrings, type TuningString } from '@/core/music/tuning';
+import { TunerAnnouncer } from '@/core/speech/phrases';
+import { sayNow } from '@/hooks/useSpeech';
 import { usePitchDetection } from '@/hooks/usePitchDetection';
 import { usePracticeSession } from '@/hooks/usePracticeSession';
 import { useSettings } from '@/hooks/useSettings';
@@ -276,8 +278,20 @@ export function TunerWidget({ compact = false, onAllStringsTuned, trackPractice 
     if (tuned.size < strings.length || celebratedRef.current) return;
     celebratedRef.current = true;
     toast.show(TUNER_TEXT.allTuned, 'success');
+    void sayNow('tuner', 'Alle sechs Saiten sind gestimmt. Super gemacht!');
     onAllStringsTuned?.();
   }, [tuned, strings.length, toast, onAllStringsTuned]);
+
+  /* ---- Sprachansage („E-Saite, zu tief“ / „E stimmt“) – erst bei stabiler Messung, nicht doppelt ---- */
+  const [announcer] = useState(() => new TunerAnnouncer());
+  useEffect(() => {
+    if (!listening) {
+      announcer.reset();
+      return;
+    }
+    const phrase = announcer.update(reading ? { name: reading.name, stringNumber: reading.target.number, direction: reading.direction, farOff: reading.farOff } : null, performance.now());
+    if (phrase) void sayNow('tuner', phrase);
+  }, [announcer, reading, listening]);
 
   /* ---- Referenzton ---- */
   const stopReferenceRef = useRef<(() => void) | null>(null);

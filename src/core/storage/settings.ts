@@ -29,6 +29,19 @@ export interface AppSettings {
   onboardingDone: boolean;
   defaultNotationView: 'tab' | 'score';
   hapticFeedback: boolean;
+  /** Sprachbegleitung über die deutsche Systemstimme (offline, nichts verlässt das Gerät). */
+  speechEnabled: boolean;
+  /** Sprechtempo (1 = normal). */
+  speechRate: number;
+  /** Gewünschte Stimme (voiceURI), leer = beste deutsche Stimme automatisch. */
+  speechVoiceURI: string;
+  speechLessons: boolean;
+  speechTuner: boolean;
+  speechListen: boolean;
+  speechCountIn: boolean;
+  speechPlayer: boolean;
+  /** Kopfhörer-/Sperrbildschirm-Steuerung über die Media Session API (experimentell). */
+  headsetControls: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -53,6 +66,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
   onboardingDone: false,
   defaultNotationView: 'tab',
   hapticFeedback: true,
+  speechEnabled: true,
+  speechRate: 1,
+  speechVoiceURI: '',
+  speechLessons: true,
+  speechTuner: true,
+  speechListen: true,
+  speechCountIn: true,
+  speechPlayer: true,
+  headsetControls: false,
 };
 
 const SETTINGS_KEY = 'app';

@@ -12,6 +12,7 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 - 🎧 **Mitspielmodus** mit eigener Aufnahme (MP3/WAV/M4A): Zeitmarken setzen, Tabs laufen synchron, Abschnitte wiederholen, Tempo reduzieren
 - 🎼 **Mehrspurige Wiedergabe**: Begleitspuren eines Imports leiser mitspielen lassen
 - 👂 **„Spiel mit – GuitarCoach hört zu“**: Mikrofon-Lernkontrolle Note für Note (grün/gelb/rot, Toleranz einstellbar)
+- 🗣️ **Sprachbegleitung** mit der deutschen Systemstimme (offline): Lektionen vorlesen, Stimmgerät-Ansagen („E-Saite, zu tief“), Ziel-Ton und Rückmeldung im Spiel-mit-Modus, gesprochener Einzähler, Abschnittsansagen – alles einzeln abschaltbar
 - ✍️ **Tab-Editor** für eigene Melodien (Griffbrett-Eingabe, Notenlängen, Pausen, Export)
 - 📈 **Dashboard, Lernplan, Statistiken, Lernziele, Erfolge** – alles aus echten Übungsdaten
 - 🔒 Daten bleiben auf dem Gerät (IndexedDB), Sicherung/Wiederherstellung als JSON
@@ -25,7 +26,8 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 | Import | alphaTab 1.8 (Guitar Pro, MusicXML, alphaTex), eigener MIDI-Parser, eigenes JSON-Format |
 | Speicher | IndexedDB via Dexie 4 (LocalStorage nur für Kleinstwerte) |
 | Offline | vite-plugin-pwa / Workbox (Precache aller App-Dateien inkl. Beispieldateien) |
-| Tests | Vitest + Testing Library (162 Unit-/Komponententests), Playwright (16 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
+| Sprache | Web Speech API (`speechSynthesis`, Systemstimme, offline); Media Session API für Kopfhörer-Tasten (experimentell) |
+| Tests | Vitest + Testing Library (184 Unit-/Komponententests), Playwright (17 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
 | CI/Deployment | GitHub Actions: Typprüfung, Lint, Tests, Build, E2E; GitHub-Pages-Deployment mit HTTPS |
 | Native App | Capacitor-Konfiguration vorbereitet (iOS) |
 
@@ -48,7 +50,9 @@ Der Workflow `.github/workflows/deploy-pages.yml` baut die App mit dem Basis-Pfa
 
 1. Das Repository muss **öffentlich** sein: Settings → General → Danger Zone → „Change repository visibility“ → Public. Für private Repositories bietet GitHub Pages nur mit einem kostenpflichtigen Plan (GitHub Pro) an; die Pages-Einstellung bleibt sonst gesperrt.
 2. **Settings → Pages → Build and deployment → Source: „GitHub Actions“** wählen.
-3. Unter **Actions → „GitHub Pages (HTTPS-Bereitstellung)“ → „Run workflow“** den gewünschten Branch starten (oder auf `main` pushen).
+3. Auf `main` pushen (oder mergen). Die von GitHub automatisch angelegte Umgebung `github-pages` erlaubt Veröffentlichungen nur vom Hauptzweig; andere Branches schlagen mit „not allowed to deploy to github-pages due to environment protection rules“ fehl, solange sie nicht unter Settings → Environments → github-pages freigegeben sind.
+
+Aktuelle Veröffentlichung: https://lifaadm.github.io/Gitarre-/
 
 Anschließend ist GuitarCoach unter `https://<nutzer>.github.io/<repository>/` erreichbar, inklusive Mikrofon und Offline-Installation. Wer das Repository privat lassen möchte, legt stattdessen den Ordner `dist/` auf einen beliebigen HTTPS-Host (Netlify, Cloudflare Pages, Vercel, eigener Server).
 

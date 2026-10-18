@@ -3,6 +3,9 @@ import { ChevronLeft, ChevronRight, Ear, Guitar, Hand, ListMusic, Pause, Play, R
 import { Link } from 'react-router';
 import { Badge, Button, IconButton, Segmented, Sheet, Slider, Toggle, useToast } from '@/components/ui';
 import { outputLatencySeconds, unlockAudio } from '@/core/audio/audioContext';
+import { setMediaPlaybackState, startMediaSession } from '@/core/audio/mediaSession';
+import { countWords } from '@/core/speech/phrases';
+import { sayNow } from '@/hooks/useSpeech';
 import { TEMPO_FACTORS, type LoopRange } from '@/core/audio/tabPlayer';
 import { formatSeconds } from '@/core/music/durations';
 import { noteNameWithOctave } from '@/core/music/notes';
@@ -35,6 +38,8 @@ export interface SongPlayerProps {
 }
 
 const TEMPO_PRESETS = [0.25, 0.5, 0.75, 1] as const;
+/** Vorlauf, damit das gesprochene Zählwort ungefähr mit dem Klick zusammenfällt (Sprachausgabe startet verzögert). */
+const SPEECH_LEAD_MS = 80;
 
 export function SongPlayer({ score, songId, title, practiceKind = 'song', practiceRefId, initialTempoFactor, compact = false, listenHref, sourceFileId, onPlaythroughComplete }: SongPlayerProps) {
   const engine = useEngine();
@@ -96,6 +101,48 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan, player, synth]);
+
+  // Gesprochener Einzähler („eins, zwei, drei, vier“) parallel zu den Metronom-Klicks
+  useEffect(() => {
+    let timers: number[] = [];
+    const clear = (): void => {
+      for (const t of timers) window.clearTimeout(t);
+      timers = [];
+    };
+    const offCountIn = player.onCountIn(({ beats, beatSec, firstClickTime }) => {
+      clear();
+      const base = (firstClickTime - engine.ctx.currentTime) * 1000 - SPEECH_LEAD_MS;
+      countWords(beats).forEach((word, i) => {
+        timers.push(window.setTimeout(() => void sayNow('countIn', word), Math.max(0, base + i * beatSec * 1000)));
+      });
+    });
+    const offStatus = player.subscribe((s) => {
+      if (s.status !== 'counting') clear();
+    });
+    return () => {
+      clear();
+      offCountIn();
+      offStatus();
+    };
+  }, [player, engine.ctx]);
+
+  // Kopfhörer-/Sperrbildschirm-Steuerung (experimentell)
+  useEffect(() => {
+    if (!settings.headsetControls) return;
+    const stopSession = startMediaSession(
+      { title: title ?? 'GuitarCoach' },
+      {
+        play: () => void unlockAudio().then(() => player.play()),
+        pause: () => player.pause(),
+        stop: () => player.stop(),
+      },
+    );
+    const off = player.subscribe((s) => setMediaPlaybackState(s.status === 'playing' || s.status === 'counting' ? 'playing' : 'paused'));
+    return () => {
+      off();
+      stopSession();
+    };
+  }, [settings.headsetControls, player, title]);
 
   // Songfortschritt beim Verlassen speichern
   useEffect(() => {
@@ -215,6 +262,15 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
   };
 
   const currentInstance = currentBeat?.instanceIndex ?? null;
+
+  // Abschnittsnamen („Refrain“) ansagen, wenn die Wiedergabe einen neuen Abschnitt erreicht
+  const lastSectionRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (snapshot.status !== 'playing' || currentInstance === null) return;
+    const section = plan.barInstances[currentInstance]?.section ?? null;
+    if (section && section !== lastSectionRef.current) void sayNow('player', section, { interrupt: false });
+    lastSectionRef.current = section;
+  }, [currentInstance, snapshot.status, plan]);
   const effectiveBpm = Math.round((plan.barInstances[currentInstance ?? 0]?.tempo ?? score.tempo) * snapshot.tempoFactor);
   const totalScaled = plan.totalSec / snapshot.tempoFactor;
   const posScaled = positionSec / snapshot.tempoFactor;

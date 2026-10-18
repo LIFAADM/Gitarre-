@@ -6,7 +6,7 @@ import { Badge, Button, Card, EmptyState, IconButton, PageHeader, ProgressBar, T
 import { unlockAudio } from '@/core/audio/audioContext';
 import { getExercise } from '@/core/content/exercises';
 import { preferredPositionForMidi } from '@/core/music/fretboard';
-import { noteNameWithOctave } from '@/core/music/notes';
+import { noteName, noteNameWithOctave } from '@/core/music/notes';
 import { buildPlaybackPlan, type PlaybackPlan } from '@/core/music/playback';
 import type { Score } from '@/core/music/score';
 import { parseTabNotation } from '@/core/music/tabNotation';
@@ -17,6 +17,8 @@ import { Fretboard, type FretboardHighlight } from '@/features/fretboard/Fretboa
 import { TabView, type TabViewHandle } from '@/features/player/TabView';
 import { useEngine } from '@/hooks/useEngine';
 import { usePitchDetection } from '@/hooks/usePitchDetection';
+import { listenResultPhrase, listenTargetPhrase, listenVerdictPhrase } from '@/core/speech/phrases';
+import { sayNow } from '@/hooks/useSpeech';
 import { usePracticeSession } from '@/hooks/usePracticeSession';
 import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/cn';
@@ -111,11 +113,36 @@ function ListenSession({ target }: { target: Target }) {
 
   const current = steps[index];
 
+  // Sprachbegleitung: Ziel-Ton ansagen (Saite, Bund), Bewertung sprechen, Ergebnis vorlesen.
+  useEffect(() => {
+    if (!running || !current || finished) return;
+    const phrase = listenTargetPhrase(current.positions.map((p) => ({ string: p.string, fret: p.fret, name: noteName(p.midi, settings.noteNaming) })));
+    if (!phrase) return;
+    gate.current.disarm(1);
+    void sayNow('listen', phrase, { interrupt: false }).then(() => gate.current.reset());
+  }, [running, current, finished, settings.noteNaming]);
+
+  useEffect(() => {
+    if (!verdict || !running) return;
+    const naming = settings.noteNaming;
+    const phrase =
+      verdict.kind === 'match'
+        ? listenVerdictPhrase({ kind: 'match' })
+        : verdict.kind === 'near'
+          ? listenVerdictPhrase({ kind: 'near', direction: verdict.direction })
+          : verdict.kind === 'octave'
+            ? listenVerdictPhrase({ kind: 'octave' })
+            : listenVerdictPhrase({ kind: 'wrong', played: noteName(verdict.midi, naming), expected: noteName(verdict.expected, naming) });
+    gate.current.disarm(1);
+    void sayNow('listen', phrase).then(() => gate.current.reset());
+  }, [verdict, running, settings.noteNaming]);
+
   const finish = useCallback(async () => {
     setRunning(false);
     detection.stop();
     setFinished(true);
     const s = summarizeResults(results);
+    void sayNow('listen', listenResultPhrase(s.correct, s.total));
     await flush();
     const repo = new ProgressRepository();
     if (target.songId && s.total > 0) await repo.updateSongProgress(target.songId, { addSec: 0, tempoFactor: 0, accuracy: s.accuracy });
