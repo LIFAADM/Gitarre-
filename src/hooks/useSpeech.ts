@@ -4,7 +4,7 @@ import { getSettings, type AppSettings } from '@/core/storage/settings';
 import { useSettings } from './useSettings';
 
 /** Bereiche, in denen die App spricht – einzeln abschaltbar in den Einstellungen. */
-export type SpeechScope = 'lessons' | 'tuner' | 'listen' | 'countIn' | 'player' | 'tips';
+export type SpeechScope = 'lessons' | 'tuner' | 'listen' | 'countIn' | 'player' | 'tips' | 'kids';
 
 const SCOPE_KEY: Record<SpeechScope, keyof AppSettings> = {
   lessons: 'speechLessons',
@@ -13,6 +13,7 @@ const SCOPE_KEY: Record<SpeechScope, keyof AppSettings> = {
   countIn: 'speechCountIn',
   player: 'speechPlayer',
   tips: 'speechTips',
+  kids: 'speechKids',
 };
 
 export function speechScopeEnabled(scope: SpeechScope | null, settings: AppSettings = getSettings()): boolean {

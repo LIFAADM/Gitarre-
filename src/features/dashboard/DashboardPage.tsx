@@ -21,7 +21,7 @@ function greeting(name: string): string {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const [settings] = useSettings();
+  const [settings, updateSettings] = useSettings();
   const data = useAppData();
   useAchievementSync(data);
   const now = useNow();
@@ -120,6 +120,27 @@ export function DashboardPage() {
             <QuickButton icon={<Timer size={22} />} label="Metronom starten" onClick={() => navigate('/werkzeuge/metronom')} className="col-span-2" />
           </div>
         </section>
+
+        {/* Kinder-Modus */}
+        <PressableCard
+          padding="sm"
+          onClick={() => {
+            void updateSettings({ kidsMode: true });
+            navigate('/kinder');
+          }}
+          data-testid="kids-entry"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#3b8be8]/20 text-2xl" aria-hidden>
+              🧒
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">Kinder-Modus</p>
+              <p className="text-xs text-muted">Gitarrenspiele ab 4 Jahren: Farben statt Noten, gesprochene Anleitung, Elternsperre.</p>
+            </div>
+            <ArrowRight size={18} className="text-muted" />
+          </div>
+        </PressableCard>
 
         {/* Aktuelle Lektion */}
         {next && nextChapter && (

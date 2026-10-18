@@ -7,6 +7,8 @@ import { DEFAULT_SETTINGS } from '@/core/storage/settings';
 import { downloadTextFile } from '@/features/songs/songUtils';
 import { useSettings } from '@/hooks/useSettings';
 import { useSpeech } from '@/hooks/useSpeech';
+import { KIDS_STRINGS } from '@/features/kids/kidsData';
+import { useNavigate } from 'react-router';
 import { formatBytes } from '@/lib/format';
 
 const LICENSES = [
@@ -21,6 +23,7 @@ const LICENSES = [
 export function SettingsPage() {
   const [settings, update] = useSettings();
   const toast = useToast();
+  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [storage, setStorage] = useState<{ usage: number; quota: number } | null>(null);
   const [micState, setMicState] = useState<string>('wird beim ersten Start abgefragt');
@@ -155,6 +158,33 @@ export function SettingsPage() {
 
         <Card>
           <h2 className="flex items-center gap-2 text-base font-bold">
+            <span aria-hidden>🧒</span> Kinder-Modus (ab 4 Jahren)
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Eigene Oberfläche ohne Lesen: riesige Tasten, Saiten als Farben, gesprochene Anleitungen. Vier Spiele: Saiten entdecken, „Welche Saite?“ (Hören und Nachspielen, mit Mikrofon oder Antippen), Kinderlieder in der ersten Lage (Vorspielen, Mitspielen) und Klatschen im Takt. Zurück zur normalen App nur über eine Rechenaufgabe für Erwachsene.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Saitenfarben">
+            {KIDS_STRINGS.map((s) => (
+              <span key={s.number} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ backgroundColor: s.color }}>
+                {s.number} · {s.noteName} · {s.colorName}
+              </span>
+            ))}
+          </div>
+          <Button
+            className="mt-3"
+            variant="primary"
+            onClick={() => {
+              void update({ kidsMode: true });
+              navigate('/kinder');
+            }}
+          >
+            Kinder-Modus starten
+          </Button>
+          <p className="mt-2 text-xs text-muted">Tipp: Für kleine Hände eignet sich eine 1/4- oder 1/2-Gitarre; die Stimmung ist dieselbe, die Spiele funktionieren unverändert.</p>
+        </Card>
+
+        <Card>
+          <h2 className="flex items-center gap-2 text-base font-bold">
             <Lightbulb size={18} className="text-gold" /> Coach-Tipps
           </h2>
           <Toggle checked={settings.coachTips} onChange={(v) => void update({ coachTips: v })} label="Tipps anzeigen" description="Situationsbezogene Hinweise aus deinen Messwerten: im Stimmgerät (Überdrehen, zurückrutschende Saite), im Spiel-mit-Modus (ein Bund daneben, Nachbarsaite, Fingerdruck), nach Durchläufen im Player und ein Tipp des Tages auf der Startseite." />
@@ -194,6 +224,7 @@ export function SettingsPage() {
                 <Toggle checked={settings.speechCountIn} onChange={(v) => void update({ speechCountIn: v })} disabled={!settings.speechEnabled} label="Einzähler mitsprechen" description="„Eins, zwei, drei, vier“ zu den Klicks vor dem Start (Metronom und Einzähler an)." />
                 <Toggle checked={settings.speechPlayer} onChange={(v) => void update({ speechPlayer: v })} disabled={!settings.speechEnabled} label="Abschnitte im Player ansagen" description="Sagt Abschnittsnamen wie „Refrain“ an, wenn der Song welche enthält." />
                 <Toggle checked={settings.speechTips} onChange={(v) => void update({ speechTips: v })} disabled={!settings.speechEnabled || !settings.coachTips} label="Coach-Tipps vorlesen" description="Tipps werden gesprochen, sobald sie erscheinen." />
+                <Toggle checked={settings.speechKids} onChange={(v) => void update({ speechKids: v })} disabled={!settings.speechEnabled} label="Kinder-Modus: Anleitungen sprechen" description="Jede Kinderseite erklärt sich beim Öffnen selbst." />
               </div>
             </>
           )}

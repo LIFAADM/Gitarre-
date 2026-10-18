@@ -17,6 +17,7 @@ src/
     progress/     Statistiken, Empfehlungen, Erfolge (regelbasiert)
     speech/       Sprachbegleitung: Textbausteine (reine Funktionen, getestet) und Web-Speech-Kapselung
     coach/        Coach-Tipps: regelbasierte Hinweise aus Messwerten (ListenCoach, TunerCoach, Player-/Tagestipps)
+  features/kids/  Kinder-Modus: Daten (Farben, Lieder, Rundenlogik, Rhythmus-Bewertung, Elternfrage), Shell, Spiele
   features/       Seiten und Feature-Komponenten (Dashboard, Tuner, Griffbrett, Metronom, Songs, Player, Lektionen, Üben, Spiel mit, Editor, Fortschritt, Einstellungen)
   hooks/          React-Hooks (Settings, Engine, Übungssitzungen, Pitch-Detection, Sprache, Live-Daten)
 ```
@@ -77,6 +78,12 @@ Nur gemeinfreie Lieder (eigene Arrangements) und eigene Übungen sind enthalten.
 - `core/coach/coach.ts` ist reine Logik ohne React: `ListenCoach.observe()` erhält jede Bewertung des Spiel-mit-Modus samt erwarteter Griffposition und leitet aus der Fehlerhistorie Muster ab (±70 Cent und mehr = ein Bund daneben; Quart/Terz-Abstand = Nachbarsaite; Oktave; Intonation zu tief/hoch auf gegriffenen Tönen; verstimmte Leersaiten; drei Fehler in Folge). `TunerCoach.update()` verfolgt Richtungswechsel je Saite (Überdrehen), zuletzt gestimmte Saiten (Zurückrutschen) und Dauer großer Abweichungen. `TipGate` drosselt (Mindestabstand, jede ID einmal, Lob wiederholbar).
 - Tipps sind Daten (`CoachTip { id, text, spoken?, kind }`); `CoachTipCard` zeigt sie einheitlich mit Vorlesen und Schließen. Sprachausgabe läuft über den Bereich `tips` der Sprachbegleitung und unterbricht laufende Ansagen nicht (`interrupt: false`).
 - Der Tipp des Tages ist deterministisch (Kalendertag modulo Liste), datengetriebene Hinweise aus `Summary` haben Vorrang.
+
+### Kinder-Modus
+- Eigene Shell (`KidsShell`) statt der normalen Seitenstruktur: großer Zurück-/Lautsprecher-Knopf, Sternezähler, Elternsperre; die App-Hülle blendet unter `/kinder` die untere Navigation aus. `settings.kidsMode` leitet die Startroute um, damit ein Kind nach dem Neuladen nicht in der Erwachsenen-App landet.
+- `kidsData.ts` ist reine Logik: Saitenfarben, vier Lieder als `{string, fret, beats}` in erster Lage (Korrektheit der Melodien per Test gegen Notennamen geprüft), `makeListenRound` mit injizierbarem Zufall, `rhythmScore` (greedy, jeder Anschlag zählt einmal), `starsFor`, `parentQuestion`.
+- Die Spiele nutzen dieselbe Signalkette wie die Erwachsenen-App (`usePitchDetection`, `OnsetGate`, `evaluatePitch`, `detectClosestString`) mit großzügigeren Toleranzen; das Klatsch-Spiel liest Schlagphase und Fortschritt aus `Metronome.currentBeat()` statt eigene Zeitrechnung zu führen.
+- Sterne liegen im `meta`-Speicher (`kidsProgress`), damit kein Schemawechsel nötig war; sie sind nicht Teil der JSON-Sicherung.
 
 ## Erweiterbarkeit
 - Neue eingebaute Songs/Übungen: `core/content/songs.ts` bzw. `exercises.ts` (Tab-Notation), `CONTENT_VERSION` erhöhen.

@@ -16,6 +16,7 @@ Siehe STATUS.md.
 6. **Mehrspurigkeit**: Solo/Mute je Spur, Spurlautstärken speichern, Begleitspuren im Mitspielmodus mit Original mischen.
 7. **Erweiterte Lernkontrolle**: Rhythmus-Bewertung (zu früh/zu spät relativ zum Metronom), Akkorderkennung (Mehrton-Analyse), Verlauf der Trefferquote pro Takt („Heatmap“).
 7a. **Sprachbegleitung und Coach ausbauen**: vorgelesene Tagesplan-Zusammenfassung, Sprachausgabe für „Tabs verstehen“, Coach-Tipps zu Rhythmus (sobald Rhythmus-Bewertung existiert) und zu Akkordgriffen; Spracheingabe nur, wenn eine rein lokale Erkennung ohne Serverkontakt verfügbar ist.
+7b. **Kinder-Modus ausbauen**: mehr Lieder ohne Greifen (Leersaiten-Melodien), Aufnahme eigener Elternstimme für Anleitungen, Belohnungsbilder statt nur Sterne, Zeitbegrenzung pro Sitzung für Eltern, Linkshänder-Darstellung der Farbbalken.
 8. **Lernplan-Feinschliff**: Wochenplan, Erinnerungen (Web-Push erst mit Capacitor), adaptive Vorschläge aus Fehlerstatistik.
 9. **Weitere Lernstufen und Inhalte**: Kapitel zu Akkordbegleitung, Barré, Lagenwechsel; mehr gemeinfreie Lieder (Volkslieder, Klassik-Etüden).
 
