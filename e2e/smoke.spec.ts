@@ -154,6 +154,40 @@ test.describe('GuitarCoach MVP', () => {
     await expect(page.getByText('Ton 1 von 12')).toBeVisible();
   });
 
+  test('Kinder-Modus: Spiele, Saiten antippen, Lied mit Weiter-Taste, Elternsperre', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('kids-entry').click();
+    await expect(page).toHaveURL(/\/kinder$/);
+    await expect(page.getByRole('heading', { name: /Gitarrenspiele/ })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toHaveCount(0);
+    // Saiten entdecken: Antippen markiert die Saite
+    await page.getByTestId('kids-tile-saiten').click();
+    await page.getByTestId('kids-string-6').click();
+    await expect(page.getByText('1 von 6 Saiten gefunden')).toBeVisible();
+    for (const n of [5, 4, 3, 2, 1]) await page.getByTestId(`kids-string-${n}`).click();
+    await expect(page.getByText('Alle sechs gefunden!')).toBeVisible();
+    await expect(page.getByTestId('kids-stars')).toContainText('1');
+    // Lied: Mitspielen und mit „Weiter“ durchlaufen
+    await page.goto('/kinder/lieder');
+    await page.getByTestId('kids-song-regenbogen').click();
+    await expect(page.getByRole('heading', { name: /Regenbogen/ })).toBeVisible();
+    await page.getByTestId('kids-play').click();
+    await expect(page.getByTestId('kids-current-note')).toContainText('Rote Saite');
+    for (let i = 0; i < 12; i++) await page.getByTestId('kids-next').click();
+    await expect(page.getByText('Geschafft!')).toBeVisible();
+    await expect(page.getByLabel('0 von 3 Sternen')).toBeVisible();
+    // Kinder-Modus bleibt beim Neuladen aktiv, Elternsperre führt zurück
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/kinder$/);
+    await page.getByRole('button', { name: 'Für Eltern' }).click();
+    const question = await page.getByTestId('parent-question').innerText();
+    const m = /(\d+) \+ (\d+)/.exec(question)!;
+    const answer = String(Number(m[1]) + Number(m[2]));
+    for (const d of answer) await page.getByRole('button', { name: d, exact: true }).click();
+    await page.getByRole('button', { name: 'OK' }).click();
+    await expect(page.getByRole('heading', { name: /Guten (Morgen|Tag|Abend)/ })).toBeVisible();
+  });
+
   test('Sprachbegleitung: Einstellungen bleiben erhalten, Lektion bietet Vorlesen an', async ({ page }) => {
     await page.goto('/einstellungen');
     await expect(page.getByRole('heading', { name: 'Sprachbegleitung' })).toBeVisible();

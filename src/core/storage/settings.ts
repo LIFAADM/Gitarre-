@@ -46,6 +46,10 @@ export interface AppSettings {
   coachTips: boolean;
   /** Coach-Tipps auch vorlesen. */
   speechTips: boolean;
+  /** Kinder-Modus aktiv: App startet auf der Kinder-Startseite, Verlassen nur über die Elternsperre. */
+  kidsMode: boolean;
+  /** Gesprochene Anleitungen im Kinder-Modus. */
+  speechKids: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -81,6 +85,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   headsetControls: false,
   coachTips: true,
   speechTips: true,
+  kidsMode: false,
+  speechKids: true,
 };
 
 const SETTINGS_KEY = 'app';

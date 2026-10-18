@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { ToastProvider } from '@/components/ui';
 import { primeSpeech } from '@/core/speech/speech';
@@ -24,11 +24,19 @@ import { TabReadingPage } from '@/features/lessons/TabReadingPage';
 import { EditorPage } from '@/features/editor/EditorPage';
 import { ProgressPage } from '@/features/progress/ProgressPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { KidsHome } from '@/features/kids/KidsHome';
+import { KidsStringsPage } from '@/features/kids/KidsStringsPage';
+import { KidsListenGame } from '@/features/kids/KidsListenGame';
+import { KidsSongsPage } from '@/features/kids/KidsSongsPage';
+import { KidsSongPlay } from '@/features/kids/KidsSongPlay';
+import { KidsRhythmGame } from '@/features/kids/KidsRhythmGame';
+import { useSettings } from '@/hooks/useSettings';
 import { NotFoundPage } from './NotFoundPage';
 import { Splash } from './Splash';
 
 export default function App() {
   const [state, setState] = useState<BootstrapState>({ status: 'loading' });
+  const [settings] = useSettings();
   useRegisterSW({ immediate: true });
 
   useEffect(() => {
@@ -63,7 +71,13 @@ export default function App() {
     <ToastProvider>
       <Routes>
         <Route element={<AppShell />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={settings.kidsMode ? <Navigate to="/kinder" replace /> : <DashboardPage />} />
+          <Route path="kinder" element={<KidsHome />} />
+          <Route path="kinder/saiten" element={<KidsStringsPage />} />
+          <Route path="kinder/hoeren" element={<KidsListenGame />} />
+          <Route path="kinder/lieder" element={<KidsSongsPage />} />
+          <Route path="kinder/lieder/:songId" element={<KidsSongPlay />} />
+          <Route path="kinder/klatschen" element={<KidsRhythmGame />} />
           <Route path="lernen" element={<LessonsPage />} />
           <Route path="lernen/tabs-lesen" element={<TabReadingPage />} />
           <Route path="lernen/:lessonId" element={<LessonPage />} />
