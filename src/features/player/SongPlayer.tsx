@@ -5,6 +5,8 @@ import { Badge, Button, IconButton, Segmented, Sheet, Slider, Toggle, useToast }
 import { outputLatencySeconds, unlockAudio } from '@/core/audio/audioContext';
 import { setMediaPlaybackState, startMediaSession } from '@/core/audio/mediaSession';
 import { countWords } from '@/core/speech/phrases';
+import { playthroughTip, startTip } from '@/core/coach/coach';
+import { getDb } from '@/core/storage/db';
 import { sayNow } from '@/hooks/useSpeech';
 import { TEMPO_FACTORS, type LoopRange } from '@/core/audio/tabPlayer';
 import { formatSeconds } from '@/core/music/durations';
@@ -72,6 +74,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
   const tabRef = useRef<TabViewHandle | null>(null);
   const maxTempoUsed = useRef(initialTempoFactor ?? 1);
   const startedFromBeginning = useRef(true);
+  const startTipShown = useRef(false);
 
   const practiceId = practiceRefId ?? songId;
   const practiceOptions = useMemo(() => {
@@ -162,9 +165,14 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
       maxTempoUsed.current = Math.max(maxTempoUsed.current, factor);
       if (songId) void new ProgressRepository().updateSongProgress(songId, { addSec: 0, tempoFactor: factor, completedPlaythrough: true });
       toast.show(`Durchlauf geschafft (${Math.round(factor * 100)} % Tempo)!`, 'success');
+      if (settings.coachTips) {
+        const tip = playthroughTip(factor);
+        toast.show(`Tipp: ${tip.text}`, 'info', 8000);
+        void sayNow('tips', tip.spoken ?? tip.text, { interrupt: false });
+      }
       onPlaythroughComplete?.({ tempoFactor: factor });
     });
-  }, [player, songId, toast, onPlaythroughComplete, snapshot.loop]);
+  }, [player, songId, toast, onPlaythroughComplete, snapshot.loop, settings.coachTips]);
 
   // Positions-Loop (rAF)
   useEffect(() => {
@@ -214,8 +222,18 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
     else {
       startedFromBeginning.current = player.getPositionSec() < 0.01;
       player.play();
+      // Coach: noch nie durchgespielt und gleich im vollen Tempo? Einmal pro Besuch langsam anfangen empfehlen.
+      if (startedFromBeginning.current && songId && settings.coachTips && !startTipShown.current) {
+        startTipShown.current = true;
+        void getDb()
+          .songProgress.get(songId)
+          .then((p) => {
+            const tip = startTip({ completedPlaythroughs: p?.completedPlaythroughs ?? 0, tempoFactor: player.snapshot().tempoFactor, bars: plan.barInstances.length });
+            if (tip) toast.show(`Tipp: ${tip.text}`, 'info', 8000);
+          });
+      }
     }
-  }, [isPlaying, player]);
+  }, [isPlaying, player, songId, settings.coachTips, plan.barInstances.length, toast]);
 
   const setTempo = (factor: number): void => {
     player.setTempoFactor(factor);

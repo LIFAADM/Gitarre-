@@ -3,7 +3,10 @@ import { ArrowRight, BookOpen, Flame, Gauge, GraduationCap, Guitar, Heart, ListM
 import { Link, useNavigate } from 'react-router';
 import { Badge, Card, IconButton, PressableCard, ProgressBar, Stat } from '@/components/ui';
 import { ALL_LESSONS, CHAPTERS, levelLabel } from '@/core/content/lessons';
+import { dailyTip } from '@/core/coach/coach';
 import { buildRecommendations, nextOpenLesson } from '@/core/progress/recommendations';
+import { CoachTipCard } from '@/features/coach/CoachTipCard';
+import { useNow } from '@/hooks/useNow';
 import { summarize } from '@/core/progress/stats';
 import { useAchievementSync, useAppData } from '@/hooks/useAppData';
 import { useSettings } from '@/hooks/useSettings';
@@ -21,6 +24,7 @@ export function DashboardPage() {
   const [settings] = useSettings();
   const data = useAppData();
   useAchievementSync(data);
+  const now = useNow();
 
   const summary = useMemo(() => summarize(data.sessions, data.lessonProgress, data.songProgress), [data.sessions, data.lessonProgress, data.songProgress]);
   const doneIds = useMemo(() => new Set(data.lessonProgress.filter((l) => l.status === 'done').map((l) => l.lessonId)), [data.lessonProgress]);
@@ -42,6 +46,7 @@ export function DashboardPage() {
   const goalMinutes = settings.dailyGoalMinutes;
   const todayPct = Math.min(100, (summary.todayMinutes / goalMinutes) * 100);
   const isFirstRun = data.loaded && data.sessions.length === 0 && doneIds.size === 0;
+  const coachTip = useMemo(() => dailyTip({ now, summary }), [now, summary]);
 
   return (
     <>
@@ -86,6 +91,8 @@ export function DashboardPage() {
             </div>
           </div>
         </Card>
+
+        {data.loaded && settings.coachTips && <CoachTipCard tip={coachTip} label="Coach-Tipp des Tages" />}
 
         {isFirstRun && (
           <Card>

@@ -7,6 +7,8 @@ import { RMS_GATE, type TrackedPitch } from '@/core/audio/pitch/pitchTracker';
 import { centsBetween, clamp, noteName, octaveOf, type NoteNaming } from '@/core/music/notes';
 import { STANDARD_TUNING, tuningStrings, type TuningString } from '@/core/music/tuning';
 import { TunerAnnouncer } from '@/core/speech/phrases';
+import { TunerCoach, type CoachTip } from '@/core/coach/coach';
+import { CoachTipCard } from '@/features/coach/CoachTipCard';
 import { sayNow } from '@/hooks/useSpeech';
 import { usePitchDetection } from '@/hooks/usePitchDetection';
 import { usePracticeSession } from '@/hooks/usePracticeSession';
@@ -293,6 +295,26 @@ export function TunerWidget({ compact = false, onAllStringsTuned, trackPractice 
     if (phrase) void sayNow('tuner', phrase);
   }, [announcer, reading, listening]);
 
+  /* ---- Coach-Tipps (weit daneben, Überdrehen, zurückrutschende Saite, zu zaghaft gedreht) ---- */
+  const [tunerCoach] = useState(() => new TunerCoach());
+  const [tip, setTip] = useState<CoachTip | null>(null);
+  const coachOn = settings.coachTips;
+  // Reagiert auf neue Messwerte des Mikrofon-Hooks (ereignisgesteuert, daher setState im Effekt beabsichtigt).
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!listening) {
+      tunerCoach.reset();
+      return;
+    }
+    if (!coachOn) return;
+    const t = tunerCoach.update(reading ? { stringNumber: reading.target.number, name: reading.name, direction: reading.direction, cents: reading.cents, farOff: reading.farOff, nearestName: reading.nearestName } : null, performance.now());
+    if (t) {
+      setTip(t);
+      void sayNow('tips', t.spoken ?? t.text, { interrupt: false });
+    }
+  }, [tunerCoach, reading, listening, coachOn]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   /* ---- Referenzton ---- */
   const stopReferenceRef = useRef<(() => void) | null>(null);
   const referenceTimerRef = useRef<number | null>(null);
@@ -440,6 +462,7 @@ export function TunerWidget({ compact = false, onAllStringsTuned, trackPractice 
           {statusText}
         </p>
         {hint && <p className="mt-1 text-center text-sm leading-relaxed text-muted">{hint}</p>}
+        <CoachTipCard tip={tip} onDismiss={() => setTip(null)} className="mt-3" />
 
         <div className={compact ? 'mt-3' : 'mt-4'}>
           <LevelMeter level={level} gate={RMS_GATE[sensitivity]} active={listening} />

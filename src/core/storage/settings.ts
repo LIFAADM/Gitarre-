@@ -42,6 +42,10 @@ export interface AppSettings {
   speechPlayer: boolean;
   /** Kopfhörer-/Sperrbildschirm-Steuerung über die Media Session API (experimentell). */
   headsetControls: boolean;
+  /** Coach-Tipps anzeigen (situationsbezogene Hinweise aus den Messwerten). */
+  coachTips: boolean;
+  /** Coach-Tipps auch vorlesen. */
+  speechTips: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -75,6 +79,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   speechCountIn: true,
   speechPlayer: true,
   headsetControls: false,
+  coachTips: true,
+  speechTips: true,
 };
 
 const SETTINGS_KEY = 'app';
