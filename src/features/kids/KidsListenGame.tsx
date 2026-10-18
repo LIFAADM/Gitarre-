@@ -81,7 +81,7 @@ export function KidsListenGame() {
       gate.current.disarm(1);
       playTarget(t);
       later(() => {
-        void sayNow('kids', t.length === 1 ? 'Welche Saite war das? Zupf sie an deiner Gitarre oder tippe auf die Farbe.' : 'Das waren zwei Saiten. Spiel sie nacheinander.');
+        void sayNow('kids', t.length === 1 ? 'Welche Saite war das? Zupf sie an deiner Gitarre.' : 'Das waren zwei Saiten. Spiel sie nacheinander an deiner Gitarre.');
         setPhase('answer');
         setFeedback({ emoji: '❓', text: t.length === 1 ? 'Welche Saite war das?' : 'Zwei Saiten – nacheinander!', tone: 'neutral' });
         gate.current.reset();
@@ -174,7 +174,7 @@ export function KidsListenGame() {
   const toneClass = { ok: 'bg-ok/20 border-ok/50', bad: 'bg-bad/20 border-bad/50', neutral: 'bg-white/5 border-white/10' }[feedback.tone];
 
   return (
-    <KidsShell title="Welche Saite?" emoji="👂" instruction="Ich spiele dir eine Saite vor. Dann zupfst du die gleiche Saite an deiner Gitarre. Oder du tippst auf die Farbe. Tippe auf Los!">
+    <KidsShell title="Welche Saite?" emoji="👂" instruction="Ich spiele dir eine Saite vor. Dann zupfst du die gleiche Saite an deiner Gitarre. Tippe auf Los!">
       <div className={cn('flex items-center gap-4 rounded-[1.75rem] border-2 px-5 py-4', toneClass)} aria-live="polite">
         <span className="text-5xl" aria-hidden>
           {feedback.emoji}
@@ -200,13 +200,13 @@ export function KidsListenGame() {
         </div>
       ) : (
         <>
-          <StringBars onTap={answer} active={highlight} disabled={phase !== 'answer'} compact />
+          <StringBars onTap={answer} active={highlight} disabled={phase !== 'answer' || detection.status === 'listening'} compact />
           {phase === 'idle' ? (
             <KidsButton emoji="▶️" label="Los!" onClick={() => void start()} testId="kids-start" />
           ) : (
             <KidsButton emoji="🔊" label="Noch mal hören" color="#3b8be8" onClick={() => playTarget(target.slice(idx))} disabled={phase !== 'answer'} />
           )}
-          {detection.status === 'error' && <p className="text-center text-sm text-muted">Ohne Mikrofon: einfach die Farbe antippen.</p>}
+          {detection.status === 'error' && <p className="text-center text-sm text-muted">Kein Mikrofon: Ausnahmsweise die Farbe antippen.</p>}
         </>
       )}
     </KidsShell>

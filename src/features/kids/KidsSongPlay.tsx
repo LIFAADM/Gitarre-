@@ -1,20 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { unlockAudio } from '@/core/audio/audioContext';
+import { playClick } from '@/core/audio/metronome';
+import { countWords } from '@/core/speech/phrases';
 import { Fretboard } from '@/features/fretboard/Fretboard';
-import { OnsetGate, evaluatePitch } from '@/features/listen/listenLogic';
+import { OnsetGate } from '@/features/listen/listenLogic';
 import { useEngine } from '@/hooks/useEngine';
 import { usePitchDetection } from '@/hooks/usePitchDetection';
 import { useSettings } from '@/hooks/useSettings';
 import { sayNow } from '@/hooks/useSpeech';
 import { KidsButton, KidsShell, StarRow } from './KidsShell';
-import { kidSong, kidString, midiOf, positionPhrase, starsFor } from './kidsData';
+import { NoteHighway } from './NoteHighway';
+import { HighwayEngine, timelineFromBeats, type HighwayMode, type HighwayNote, type NoteResult } from './highwayEngine';
+import { kidSong, midiOf, positionPhrase, starsFor, type KidSong } from './kidsData';
 import { addKidsStars } from './kidsProgress';
 import { cn } from '@/lib/cn';
 
-type Mode = 'idle' | 'demo' | 'play' | 'done';
+type Mode = 'idle' | 'demo' | 'count' | 'play' | 'done';
+const LEAD_IN_BEATS = 2;
+const TEMPOS: { factor: number; emoji: string; label: string }[] = [
+  { factor: 0.6, emoji: '🐢', label: 'Langsam' },
+  { factor: 0.8, emoji: '🚶', label: 'Normal' },
+  { factor: 1, emoji: '🐇', label: 'Schnell' },
+];
 
-/** Ein Kinderlied: farbige Kreise statt Noten, Vorspielen, Mitspielen mit Mikrofon oder „Weiter“-Taste. */
+/** Ein Kinderlied als Mitspiel-Bahn: Noten laufen auf die Trefflinie zu, gespielt wird an der Gitarre, das Mikrofon hört zu. */
 export function KidsSongPlay() {
   const { songId = '' } = useParams();
   const navigate = useNavigate();
@@ -29,20 +39,32 @@ export function KidsSongPlay() {
   return <SongSession key={song.id} song={song} />;
 }
 
-function SongSession({ song }: { song: NonNullable<ReturnType<typeof kidSong>> }) {
+function SongSession({ song }: { song: KidSong }) {
   const navigate = useNavigate();
   const engine = useEngine();
   const [settings] = useSettings();
   const [mode, setMode] = useState<Mode>('idle');
-  const [pos, setPos] = useState(0);
-  const [skips, setSkips] = useState(0);
-  const [hit, setHit] = useState(false);
+  const [playMode, setPlayMode] = useState<HighwayMode>('wait');
+  const [tempoFactor, setTempoFactor] = useState(0.8);
+  const [results, setResults] = useState<NoteResult[]>(() => song.notes.map(() => 'pending'));
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [hits, setHits] = useState(0);
+  const [longWait, setLongWait] = useState(false);
+  const highwayRef = useRef<HighwayEngine | null>(null);
+  const demoStartRef = useRef<number | null>(null);
   const timers = useRef<number[]>([]);
   const gate = useRef(new OnsetGate());
-  const rowRef = useRef<HTMLDivElement | null>(null);
-  const detection = usePitchDetection({ enabled: true, sensitivity: settings.tunerSensitivity, a4Hz: settings.a4Hz, minStableMs: 140 });
-  const notes = song.notes;
-  const current = notes[pos];
+  const waitingSinceRef = useRef<number | null>(null);
+  const lastCueRef = useRef(0);
+  const detection = usePitchDetection({ enabled: true, sensitivity: settings.tunerSensitivity, a4Hz: settings.a4Hz, minStableMs: 100 });
+
+  const bpm = song.tempo * tempoFactor;
+  const beatSec = 60 / bpm;
+  const timeline: HighwayNote[] = useMemo(
+    () => timelineFromBeats(song.notes.map((n) => ({ ...n, midi: midiOf(n.string, n.fret) })), bpm, LEAD_IN_BEATS * (60 / bpm)),
+    [song.notes, bpm],
+  );
+  const totalSec = (timeline[timeline.length - 1]?.time ?? 0) + (timeline[timeline.length - 1]?.durationSec ?? 0);
 
   const clearTimers = (): void => {
     for (const t of timers.current) window.clearTimeout(t);
@@ -50,145 +72,220 @@ function SongSession({ song }: { song: NonNullable<ReturnType<typeof kidSong>> }
   };
   useEffect(() => () => clearTimers(), []);
 
-  // Aktuellen Kreis in Sicht halten
-  useEffect(() => {
-    rowRef.current?.querySelector<HTMLElement>(`[data-pos="${pos}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-  }, [pos]);
-
   const stopAll = useCallback((): void => {
     clearTimers();
     engine.synth.dampAll(engine.ctx.currentTime, 0.05);
   }, [engine]);
 
+  const getTime = useCallback((): number => {
+    if (mode === 'demo' && demoStartRef.current !== null) return (performance.now() - demoStartRef.current) / 1000;
+    if ((mode === 'play' || mode === 'done') && highwayRef.current) return highwayRef.current.time;
+    if (mode === 'count') return 0;
+    return 0;
+  }, [mode]);
+
+  /* ---------------------------------- Vorspielen ---------------------------------- */
   const demo = (): void => {
     void unlockAudio().then(() => {
       stopAll();
+      setResults(song.notes.map(() => 'pending'));
       setMode('demo');
-      setPos(0);
-      const t0 = engine.ctx.currentTime + 0.15;
-      let acc = 0;
-      const beatSec = 60 / song.tempo;
-      notes.forEach((nt, i) => {
-        const dur = nt.beats * beatSec;
-        engine.synth.noteOn(midiOf(nt.string, nt.fret), t0 + acc, { string: nt.string, velocity: 0.9, maxDurationSec: dur + 0.2 });
-        timers.current.push(window.setTimeout(() => setPos(i), Math.max(0, (acc + 0.15) * 1000)));
-        acc += dur;
-      });
+      const t0 = engine.ctx.currentTime + 0.1;
+      demoStartRef.current = performance.now() + 100;
+      for (const n of timeline) engine.synth.noteOn(n.midi, t0 + n.time, { string: n.string, velocity: 0.9, maxDurationSec: n.durationSec + 0.2 });
       timers.current.push(
         window.setTimeout(
           () => {
             setMode('idle');
-            setPos(0);
+            setCurrentIndex(null);
+            demoStartRef.current = null;
           },
-          (acc + 0.6) * 1000,
+          (totalSec + 0.8) * 1000,
         ),
       );
     });
   };
 
+  // Hervorhebung der aktuellen Note während des Vorspielens
+  useEffect(() => {
+    if (mode !== 'demo') return;
+    let raf = 0;
+    let last: number | null = null;
+    const loop = (): void => {
+      const t = getTime();
+      let idx: number | null = null;
+      for (const n of timeline) if (n.time <= t && t < n.time + n.durationSec) idx = n.index;
+      if (idx !== last) {
+        last = idx;
+        setCurrentIndex(idx);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [mode, getTime, timeline]);
+
+  /* ----------------------------------- Spielen ----------------------------------- */
   const finish = useCallback(
-    (skipped: number): void => {
+    (hw: HighwayEngine): void => {
       detection.stop();
       setMode('done');
-      const stars = starsFor(notes.length - skipped, notes.length);
+      const stars = starsFor(hw.hits, song.notes.length);
       void addKidsStars('lied', stars, song.id);
-      void sayNow('kids', `Fertig! Du hast ${song.title} gespielt! ${stars === 3 ? 'Drei Sterne, wunderbar!' : stars === 2 ? 'Zwei Sterne, toll!' : 'Ein Stern. Noch mal üben?'}`);
+      void sayNow('kids', `Fertig! ${hw.hits} von ${song.notes.length} Tönen getroffen. ${stars === 3 ? 'Drei Sterne, wunderbar!' : stars === 2 ? 'Zwei Sterne, toll gespielt!' : stars === 1 ? 'Ein Stern. Noch mal?' : 'Probier es langsam noch einmal.'}`);
     },
-    [detection, notes.length, song.id, song.title],
+    [detection, song.id, song.notes.length],
   );
 
-  const advance = useCallback(
-    (skipped: number): void => {
-      const next = pos + 1;
-      if (next >= notes.length) {
-        finish(skipped);
-        return;
-      }
-      setPos(next);
-      setHit(false);
-      gate.current.reset();
-      const nt = notes[next]!;
-      void sayNow('kids', positionPhrase(nt.string, nt.fret), { interrupt: false });
-    },
-    [pos, notes, finish],
-  );
-
-  const play = async (): Promise<void> => {
+  const start = async (): Promise<void> => {
     await unlockAudio();
     stopAll();
-    setMode('play');
-    setPos(0);
-    setSkips(0);
-    setHit(false);
+    setResults(song.notes.map(() => 'pending'));
+    setHits(0);
+    setCurrentIndex(null);
+    setLongWait(false);
+    gate.current.reset();
     try {
       await detection.start();
     } catch {
-      // ohne Mikrofon: „Weiter“-Taste
+      // ohne Mikrofon bleibt die Weiter-Taste
     }
-    const first = notes[0]!;
-    void sayNow('kids', `Los geht's! ${positionPhrase(first.string, first.fret)}`);
+    setMode('count');
+    // Einzähler: vier Klicks, mitgesprochen
+    const t0 = engine.ctx.currentTime + 0.15;
+    const words = countWords(4);
+    words.forEach((w, i) => {
+      playClick(engine.ctx, t0 + i * beatSec, i === 0, 0.5);
+      timers.current.push(window.setTimeout(() => void sayNow('kids', w), Math.max(0, (0.15 + i * beatSec) * 1000 - 80)));
+    });
+    // Im Durchlaufmodus: Klick auf jedem Schlag, damit der Puls hörbar bleibt
+    if (playMode === 'flow') {
+      const beats = Math.ceil(totalSec / beatSec) + 1;
+      for (let i = 0; i < beats; i++) playClick(engine.ctx, t0 + (4 + i) * beatSec, i % 4 === 0, 0.25);
+    }
+    timers.current.push(
+      window.setTimeout(() => {
+        highwayRef.current = new HighwayEngine(timeline, { mode: playMode, earlySec: 0.3, lateSec: 0.5, toleranceCents: 60 });
+        waitingSinceRef.current = null;
+        setMode('play');
+      }, (0.15 + 4 * beatSec) * 1000),
+    );
   };
 
   const stop = (): void => {
     detection.stop();
     stopAll();
+    highwayRef.current = null;
+    demoStartRef.current = null;
     setMode('idle');
-    setPos(0);
+    setCurrentIndex(null);
   };
 
-  const skip = (): void => {
-    const s = skips + 1;
-    setSkips(s);
-    advance(s);
-  };
-
-  // Mikrofon-Auswertung (ereignisgesteuert): passender Ton (auch eine Oktave daneben) zählt.
-  /* eslint-disable react-hooks/set-state-in-effect */
+  // Zeit voranbringen, Ereignisse der Engine in Anzeige umsetzen
   useEffect(() => {
-    if (mode !== 'play' || !current || hit) return;
+    if (mode !== 'play') return;
+    let raf = 0;
+    const loop = (): void => {
+      const hw = highwayRef.current;
+      if (!hw) return;
+      const events = hw.tick(performance.now() / 1000);
+      for (const ev of events) {
+        if (ev.type === 'wait') {
+          setCurrentIndex(ev.index);
+          waitingSinceRef.current = performance.now();
+          lastCueRef.current = 0;
+          setLongWait(false);
+          const n = timeline[ev.index]!;
+          void sayNow('kids', positionPhrase(n.string, n.fret));
+        } else if (ev.type === 'miss') {
+          setResults([...hw.results]);
+          setCurrentIndex(hw.currentIndex);
+        } else if (ev.type === 'end') {
+          setResults([...hw.results]);
+          finish(hw);
+          return;
+        }
+      }
+      if (playMode === 'flow') {
+        const idx = hw.currentIndex;
+        setCurrentIndex((prev) => (prev === idx ? prev : idx));
+      }
+      // Wartemodus: nach einigen Sekunden den erwarteten Ton leise vorspielen (Mikrofon pausiert dabei)
+      if (hw.isWaiting && waitingSinceRef.current !== null) {
+        const waited = performance.now() - waitingSinceRef.current;
+        if (waited > 5000 && performance.now() - lastCueRef.current > 6000) {
+          lastCueRef.current = performance.now();
+          const n = timeline[hw.currentIndex ?? 0];
+          if (n) {
+            detection.pause(1300);
+            gate.current.disarm(1);
+            engine.synth.noteOn(n.midi, engine.ctx.currentTime + 0.02, { string: n.string, velocity: 0.7, maxDurationSec: 0.9 });
+            timers.current.push(window.setTimeout(() => gate.current.reset(), 1300));
+          }
+        }
+        if (waited > 10_000) setLongWait(true);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [mode, playMode, timeline, finish, detection, engine]);
+
+  // Mikrofon → Engine (ereignisgesteuert)
+  useEffect(() => {
+    if (mode !== 'play') return;
+    const hw = highwayRef.current;
+    if (!hw) return;
     const now = performance.now();
     const pitch = detection.pitch;
     const armed = gate.current.update(detection.level, now, pitch !== null);
     if (!armed || !pitch || !pitch.stable) return;
-    const v = evaluatePitch([midiOf(current.string, current.fret)], { midi: pitch.midi, cents: pitch.cents }, 60);
-    if (v.kind !== 'match' && v.kind !== 'octave') return;
+    const ev = hw.onPitch(pitch.midi, pitch.cents);
+    if (!ev) return;
     gate.current.disarm(detection.level);
-    setHit(true);
-    timers.current.push(window.setTimeout(() => advance(skips), 350));
-  }, [detection.pitch, detection.level, mode, current, hit, advance, skips]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+    setResults([...hw.results]);
+    setHits(hw.hits);
+    setCurrentIndex(hw.currentIndex);
+    waitingSinceRef.current = null;
+    setLongWait(false);
+  }, [detection.pitch, detection.level, mode]);
 
-  const stars = starsFor(notes.length - skips, notes.length);
+  const skip = (): void => {
+    const hw = highwayRef.current;
+    if (!hw) return;
+    hw.skip();
+    setResults([...hw.results]);
+    setCurrentIndex(hw.currentIndex);
+    waitingSinceRef.current = null;
+    setLongWait(false);
+    if (hw.currentIndex === null) {
+      // letzte Note übersprungen → Ende abwarten (tick erledigt das)
+    }
+  };
+
+  const current = currentIndex !== null ? song.notes[currentIndex] : undefined;
+  const stars = starsFor(hits, song.notes.length);
+  const showSkip = mode === 'play' && (detection.status === 'error' || longWait);
 
   return (
-    <KidsShell title={song.title} emoji={song.emoji} instruction={`${song.title}. Tippe auf Vorspielen und hör zu. Dann tippe auf Mitspielen und spiel die Farben nach.`}>
-      <div ref={rowRef} className="-mx-4 flex gap-3 overflow-x-auto px-4 py-3 no-scrollbar" aria-label="Töne des Liedes">
-        {notes.map((nt, i) => {
-          const s = kidString(nt.string);
-          const isCurrent = i === pos && mode !== 'idle';
-          const played = mode === 'play' && i < pos;
-          return (
-            <div key={i} data-pos={i} className="flex shrink-0 flex-col items-center gap-1">
-              <span
-                className={cn('flex items-center justify-center rounded-full font-extrabold text-white shadow-lg transition-all', isCurrent ? 'h-20 w-20 text-3xl ring-4 ring-white' : 'h-14 w-14 text-xl', played && 'opacity-40', isCurrent && hit && 'ring-ok')}
-                style={{ backgroundColor: s.color, width: isCurrent ? undefined : 56 + nt.beats * 4 }}
-                aria-label={positionPhrase(nt.string, nt.fret)}
-              >
-                {nt.fret > 0 ? nt.fret : ''}
-              </span>
-              {isCurrent && <span className="text-xs font-bold text-muted">{nt.fret > 0 ? `${nt.fret}. Bund` : 'leer'}</span>}
-            </div>
-          );
-        })}
+    <KidsShell title={song.title} emoji={song.emoji} instruction={`${song.title}. Tippe auf Vorspielen und hör zu. Dann tippe auf Spielen: Die Farben laufen auf die weiße Linie zu. Spiel den Ton an deiner Gitarre, wenn die Farbe die Linie erreicht.`}>
+      <NoteHighway notes={timeline} results={results} getTime={getTime} currentIndex={currentIndex} />
+
+      <div className="flex items-center justify-between text-lg font-extrabold">
+        <span data-testid="kids-current-note" className="min-w-0 flex-1 truncate">
+          {mode === 'count' ? 'Achtung …' : current ? positionPhrase(current.string, current.fret).replace(/\.$/, '') : mode === 'play' ? '…' : 'Bereit?'}
+        </span>
+        {(mode === 'play' || mode === 'done') && (
+          <span className="text-ok" data-testid="kids-hits">
+            ⭐ {hits} / {song.notes.length}
+          </span>
+        )}
       </div>
 
-      {current && mode !== 'done' && (
-        <div className="rounded-[1.75rem] border-2 border-white/10 bg-white/5 p-3">
-          <p className="mb-2 text-center text-lg font-extrabold" data-testid="kids-current-note">
-            {mode === 'idle' ? 'Bereit?' : hit ? '✅ Super!' : positionPhrase(current.string, current.fret).replace(/\.$/, '')}
-          </p>
+      {mode !== 'done' && (
+        <div className="rounded-[1.5rem] border-2 border-white/10 bg-white/5 p-2">
           <div className="overflow-x-auto no-scrollbar">
-            <Fretboard frets={5} compact leftHanded={settings.leftHanded} orientation="player-view" naming={settings.noteNaming} highlights={mode === 'idle' ? [] : [{ string: current.string, fret: current.fret, tone: hit ? 'ok' : 'gold', pulse: !hit }]} />
+            <Fretboard frets={5} compact leftHanded={settings.leftHanded} orientation="player-view" naming={settings.noteNaming} highlights={current ? [{ string: current.string, fret: current.fret, tone: 'gold', pulse: mode === 'play' }] : []} />
           </div>
         </div>
       )}
@@ -197,17 +294,42 @@ function SongSession({ song }: { song: NonNullable<ReturnType<typeof kidSong>> }
         <div className="flex flex-col items-center gap-5 pt-2">
           <p className="text-3xl font-extrabold">🎉 Geschafft!</p>
           <StarRow stars={stars} size={56} />
-          <KidsButton emoji="🔁" label="Noch mal" onClick={() => void play()} />
+          <KidsButton emoji="🔁" label="Noch mal" onClick={() => void start()} />
           <KidsButton emoji="🎵" label="Andere Lieder" color="#3fbf7f" onClick={() => navigate('/kinder/lieder')} />
         </div>
+      ) : mode === 'idle' ? (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <KidsButton emoji="▶️" label="Vorspielen" color="#3b8be8" onClick={demo} testId="kids-demo" />
+            <KidsButton emoji="🎸" label="Spielen" onClick={() => void start()} testId="kids-play" />
+          </div>
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Spielweise">
+            <button type="button" onClick={() => setPlayMode('wait')} aria-pressed={playMode === 'wait'} className={cn('h-14 rounded-2xl text-base font-extrabold transition', playMode === 'wait' ? 'bg-white text-[#1a1830]' : 'bg-white/10 text-text')}>
+              ⏸ Wartet auf dich
+            </button>
+            <button type="button" onClick={() => setPlayMode('flow')} aria-pressed={playMode === 'flow'} className={cn('h-14 rounded-2xl text-base font-extrabold transition', playMode === 'flow' ? 'bg-white text-[#1a1830]' : 'bg-white/10 text-text')}>
+              🏃 Im Takt
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Tempo">
+            {TEMPOS.map((t) => (
+              <button key={t.factor} type="button" onClick={() => setTempoFactor(t.factor)} aria-pressed={tempoFactor === t.factor} className={cn('flex h-14 items-center justify-center gap-2 rounded-2xl text-base font-extrabold transition', tempoFactor === t.factor ? 'bg-white text-[#1a1830]' : 'bg-white/10 text-text')}>
+                <span aria-hidden>{t.emoji}</span> {t.label}
+              </button>
+            ))}
+          </div>
+        </>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {mode === 'demo' ? <KidsButton emoji="⏹" label="Stopp" color="#e5484d" onClick={stop} /> : <KidsButton emoji="▶️" label="Vorspielen" color="#3b8be8" onClick={demo} disabled={mode === 'play'} testId="kids-demo" />}
-          {mode === 'play' ? <KidsButton emoji="⏹" label="Stopp" color="#e5484d" onClick={stop} /> : <KidsButton emoji="🎤" label="Mitspielen" onClick={() => void play()} disabled={mode === 'demo'} testId="kids-play" />}
-          {mode === 'play' && <KidsButton emoji="⏭" label="Weiter" color="#3fbf7f" className="col-span-2" onClick={skip} testId="kids-next" />}
+        <div className="flex flex-col gap-3">
+          <KidsButton emoji="⏹" label="Stopp" color="#e5484d" onClick={stop} />
+          {showSkip && (
+            <button type="button" onClick={skip} data-testid="kids-next" className="h-12 rounded-2xl bg-white/10 text-sm font-bold text-muted">
+              Diesen Ton überspringen (für Eltern)
+            </button>
+          )}
+          {mode === 'play' && detection.status === 'error' && <p className="text-center text-sm text-muted">Kein Mikrofon: Dann hört GuitarCoach nicht zu. Bitte Mikrofon erlauben.</p>}
         </div>
       )}
-      {mode === 'play' && detection.status === 'error' && <p className="text-center text-sm text-muted">Ohne Mikrofon: nach jedem Ton auf „Weiter“ tippen.</p>}
     </KidsShell>
   );
 }

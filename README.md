@@ -13,7 +13,7 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 - 🎼 **Mehrspurige Wiedergabe**: Begleitspuren eines Imports leiser mitspielen lassen
 - 👂 **„Spiel mit – GuitarCoach hört zu“**: Mikrofon-Lernkontrolle Note für Note (grün/gelb/rot, Toleranz einstellbar)
 - 🗣️ **Sprachbegleitung** mit der deutschen Systemstimme (offline): Lektionen vorlesen, Stimmgerät-Ansagen („E-Saite, zu tief“), Ziel-Ton und Rückmeldung im Spiel-mit-Modus, gesprochener Einzähler, Abschnittsansagen – alles einzeln abschaltbar
-- 🧒 **Kinder-Modus (ab 4 Jahren)**: eigene Oberfläche ohne Lesen – riesige Tasten, Saiten als Regenbogenfarben, gesprochene Anleitungen; Spiele „Saiten“, „Welche Saite?“ (Hören und Nachspielen per Mikrofon oder Antippen), Kinderlieder in der ersten Lage (Vorspielen/Mitspielen) und „Klatschen“ im Takt; Sterne als Belohnung, Elternsperre per Rechenaufgabe
+- 🧒 **Kinder-Modus (ab 4 Jahren)**: eigene Oberfläche ohne Lesen – riesige Tasten, Saiten als Regenbogenfarben, gesprochene Anleitungen; Spiele „Saiten“, „Welche Saite?“ (Hören und Nachspielen per Mikrofon oder Antippen), sechs Kinderlieder in der ersten Lage auf einer **Mitspiel-Bahn wie bei Yousician** (Noten laufen auf farbigen Spuren zur Trefflinie, gespielt wird an der echten Gitarre, das Mikrofon wertet Ton und Zeitpunkt; „Wartet auf dich“ oder „Im Takt“, drei Tempi) und „Klatschen“ im Takt; Sterne als Belohnung, Elternsperre per Rechenaufgabe
 - 💡 **Coach-Tipps** aus echten Messwerten: im Spiel-mit-Modus („ein Bund daneben“, „Nachbarsaite“, „dichter hinter dem Bundstäbchen drücken“, „leere Saiten nachstimmen“), im Stimmgerät (Überdrehen, zurückrutschende Saite, zu zaghaft gedreht), nach Durchläufen im Player (nächster Temposchritt) und ein Tipp des Tages auf der Startseite – angezeigt und auf Wunsch vorgelesen
 - ✍️ **Tab-Editor** für eigene Melodien (Griffbrett-Eingabe, Notenlängen, Pausen, Export)
 - 📈 **Dashboard, Lernplan, Statistiken, Lernziele, Erfolge** – alles aus echten Übungsdaten
@@ -29,7 +29,7 @@ GuitarCoach ist eine deutschsprachige Progressive Web App (PWA) zum Gitarrelerne
 | Speicher | IndexedDB via Dexie 4 (LocalStorage nur für Kleinstwerte) |
 | Offline | vite-plugin-pwa / Workbox (Precache aller App-Dateien inkl. Beispieldateien) |
 | Sprache | Web Speech API (`speechSynthesis`, Systemstimme, offline); Media Session API für Kopfhörer-Tasten (experimentell) |
-| Tests | Vitest + Testing Library (204 Unit-/Komponententests), Playwright (18 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
+| Tests | Vitest + Testing Library (211 Unit-/Komponententests), Playwright (18 End-to-End-Tests, davon 2 mit simuliertem Mikrofon) |
 | CI/Deployment | GitHub Actions: Typprüfung, Lint, Tests, Build, E2E; GitHub-Pages-Deployment mit HTTPS |
 | Native App | Capacitor-Konfiguration vorbereitet (iOS) |
 

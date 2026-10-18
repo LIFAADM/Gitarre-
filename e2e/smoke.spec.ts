@@ -172,9 +172,12 @@ test.describe('GuitarCoach MVP', () => {
     await page.getByTestId('kids-song-regenbogen').click();
     await expect(page.getByRole('heading', { name: /Regenbogen/ })).toBeVisible();
     await page.getByTestId('kids-play').click();
-    await expect(page.getByTestId('kids-current-note')).toContainText('Rote Saite');
+    await expect(page.getByTestId('kids-current-note')).toContainText('Achtung');
+    await expect(page.getByTestId('kids-current-note')).toContainText('Rote Saite', { timeout: 15000 });
+    await expect(page.getByTestId('highway-note-0')).toHaveAttribute('data-result', 'pending');
     for (let i = 0; i < 12; i++) await page.getByTestId('kids-next').click();
-    await expect(page.getByText('Geschafft!')).toBeVisible();
+    await expect(page.getByTestId('highway-note-0')).toHaveAttribute('data-result', 'miss');
+    await expect(page.getByText('Geschafft!')).toBeVisible({ timeout: 10000 });
     await expect(page.getByLabel('0 von 3 Sternen')).toBeVisible();
     // Kinder-Modus bleibt beim Neuladen aktiv, Elternsperre führt zurück
     await page.goto('/');

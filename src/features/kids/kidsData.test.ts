@@ -27,6 +27,12 @@ describe('Kinderlieder', () => {
     expect(song.notes[song.notes.length - 2]!.string).toBe(6);
   });
 
+  it('„Morgen kommt der Weihnachtsmann“ und „Freude, schöner Götterfunken“ beginnen richtig', () => {
+    const names = (id: string, count: number) => KIDS_SONGS.find((s) => s.id === id)!.notes.slice(0, count).map((x) => noteName(midiOf(x.string, x.fret), 'de'));
+    expect(names('weihnachtsmann', 7)).toEqual(['C', 'C', 'G', 'G', 'A', 'A', 'G']);
+    expect(names('freude', 8)).toEqual(['E', 'E', 'F', 'G', 'G', 'F', 'E', 'D']);
+  });
+
   it('kennt sechs Farben mit eindeutigen Saiten', () => {
     expect(new Set(KIDS_STRINGS.map((s) => s.number)).size).toBe(6);
     expect(positionPhrase(4, 0)).toBe('Gelbe Saite.');
