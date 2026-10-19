@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { FlaskConical, Info, Mic, Trophy } from 'lucide-react';
-import { Button, Card, PageHeader, Segmented, Sheet, Slider, Toggle } from '@/components/ui';
+import { ChevronRight, FlaskConical, Info, Mic, Trophy } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Button, Card, PageHeader, PressableCard, Segmented, Sheet, Slider, Toggle } from '@/components/ui';
 import { DEFAULT_SETTINGS } from '@/core/storage/settings';
+import { useCalibration } from '@/hooks/useCalibration';
 import { useSettings } from '@/hooks/useSettings';
 
 const LICENSES = [
@@ -15,7 +17,9 @@ const LICENSES = [
 
 /** Profil: Fortschritt (Phase 6), Einstellungen, Erkennungs-Labor (Phase 1), Über. */
 export function ProfilePage() {
+  const navigate = useNavigate();
   const [settings, update] = useSettings();
+  const calibration = useCalibration();
   const [licensesOpen, setLicensesOpen] = useState(false);
 
   return (
@@ -67,6 +71,19 @@ export function ProfilePage() {
           <p className="mt-1 flex items-center gap-2 text-sm text-muted">
             <Mic size={16} /> Audio wird nur auf dem Gerät analysiert, nie übertragen.
           </p>
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-surface-2 p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Kalibrierung</p>
+              <p className="text-xs text-muted" data-testid="calibration-summary">
+                {calibration
+                  ? `Rauschen ${Math.round(calibration.noiseFloorDb)} dB · Verzögerung ${calibration.latencyMs === null ? '–' : `${calibration.latencyMs} ms`} · ${new Date(calibration.createdAt).toLocaleDateString('de-DE')}`
+                  : 'Noch nicht eingerichtet.'}
+              </p>
+            </div>
+            <Button size="sm" variant={calibration ? 'secondary' : 'primary'} onClick={() => navigate('/kalibrierung?zurueck=/profil')}>
+              {calibration ? 'Wiederholen' : 'Einrichten'}
+            </Button>
+          </div>
           <div className="mt-2">
             <Slider label="Kammerton A4" value={settings.a4Hz} min={432} max={446} step={1} onChange={(v) => void update({ a4Hz: v })} format={(v) => `${v} Hz`} />
             <Slider label="Toleranz „richtig gestimmt“" value={settings.tunerToleranceCents} min={1} max={15} step={1} onChange={(v) => void update({ tunerToleranceCents: v })} format={(v) => `± ${v} Cent`} />
@@ -91,15 +108,16 @@ export function ProfilePage() {
           <Slider label="Metronom" value={Math.round(settings.metronomeVolume * 100)} min={0} max={100} step={5} onChange={(v) => void update({ metronomeVolume: v / 100 })} format={(v) => `${v} %`} />
         </Card>
 
-        <Card padding="sm" className="flex items-center gap-3 opacity-70">
+        <PressableCard padding="sm" className="flex items-center gap-3" onClick={() => navigate('/profil/labor')} data-testid="profile-lab">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-surface-3 text-muted">
             <FlaskConical size={22} />
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-semibold">Erkennungs-Labor</p>
-            <p className="text-xs text-muted">Live-Analyse, Aufnahmen beschriften und exportieren. Kommt in Phase 1.</p>
+            <p className="text-xs text-muted">Live-Analyse, Aufnahmen beschriften und für den Benchmark exportieren.</p>
           </div>
-        </Card>
+          <ChevronRight size={20} className="text-muted" />
+        </PressableCard>
 
         <Card>
           <h2 className="flex items-center gap-2 text-base font-bold">

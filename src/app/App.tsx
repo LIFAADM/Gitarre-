@@ -13,6 +13,8 @@ import { ChordsPlaceholderPage } from '@/features/tools/ChordsPlaceholderPage';
 import { TunerPage } from '@/features/tuner/TunerPage';
 import { MetronomePage } from '@/features/metronome/MetronomePage';
 import { ProfilePage } from '@/features/profile/ProfilePage';
+import { CalibrationPage } from '@/features/profile/CalibrationPage';
+import { DetectionLabPage } from '@/features/profile/DetectionLabPage';
 import { NotFoundPage } from './NotFoundPage';
 import { Splash } from './Splash';
 
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="werkzeuge/metronom" element={<MetronomePage />} />
           <Route path="werkzeuge/akkorde" element={<ChordsPlaceholderPage />} />
           <Route path="profil" element={<ProfilePage />} />
+          <Route path="profil/labor" element={<DetectionLabPage />} />
+          <Route path="kalibrierung" element={<CalibrationPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
