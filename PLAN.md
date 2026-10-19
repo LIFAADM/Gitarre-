@@ -20,7 +20,7 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 ## Phase 0 – Plan & Aufräumen
 
 ### Erledigt
-- Tag `v1-guitarcoach` auf `main` (b6820e0) gesetzt und gepusht. Wiederherstellen: `git checkout v1-guitarcoach`.
+- Sicherung des alten Stands (`main` = b6820e0): Branch `v1-guitarcoach` auf GitHub angelegt. Der Tag `v1-guitarcoach` ist lokal gesetzt, lässt sich aus dieser Umgebung aber nicht pushen (der Git-Proxy trennt beim Tag-Push). Bitte einmalig auf GitHub anlegen: Releases → „Draft a new release“ → „Choose a tag“ → `v1-guitarcoach` eintippen → Target `v1-guitarcoach` (Branch) → „Publish release“. Wiederherstellen danach mit `git checkout v1-guitarcoach`.
 - `CLAUDE.md` (Prinzip, Regeln, Zielarchitektur) und diese `PLAN.md`.
 
 ### Löschliste (wird erst nach Freigabe ausgeführt)
