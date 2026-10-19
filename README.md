@@ -4,11 +4,12 @@ Deutschsprachige Lern-App für die klassische Konzertgitarre als PWA fürs iPhon
 
 Live: https://lifaadm.github.io/Gitarre-/ · Alte Version: Branch bzw. Tag `v1-guitarcoach`.
 
-## Stand (Phase 0)
+## Stand (Phase 1)
 
 - Navigation: Start · Lernpfad · Stücke · Werkzeuge, Profil oben rechts.
-- Funktioniert: Stimmgerät, Metronom, Vorhören der sechs gemeinfreien Arrangements (Tab, Noten, Tempo, Schleife).
-- Kommt in den nächsten Phasen: neue Tonerkennung mit Kalibrierung und Erkennungs-Labor, die Spielansicht mit Bewertung, Lernpfad, Akkorde, Stücke-Bibliothek, Fortschritt.
+- Tonerkennung im AudioWorklet (10-ms-Schritte): Tonhöhe, Anschläge, Zieltonprüfung „Ist der Ton da?“; Kalibrierung je Gerät (Rauschen, Pegel, Latenz) beim ersten Start.
+- Funktioniert: Stimmgerät auf der neuen Kette, Metronom, Vorhören der sechs gemeinfreien Arrangements, Erkennungs-Labor mit beschrifteten Aufnahmen (Export WAV + JSON nach `test-audio/real/`).
+- Kommt in den nächsten Phasen: Benchmark an echten Aufnahmen, die Spielansicht mit Bewertung, Lernpfad, Akkorde, Stücke-Bibliothek, Fortschritt.
 
 ## Entwicklung
 

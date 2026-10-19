@@ -1,6 +1,6 @@
 # PLAN.md – GuitarCoach v2
 
-Stand: 2026-10-19 · Aktuelle Phase: **0 – Plan & Aufräumen**, umgesetzt in PR #8 (Branch `v2/phase-0-plan-und-aufraeumen`). Nächste Phase nach dem Merge: **1 – Audio-Kette**.
+Stand: 2026-10-19 · Aktuelle Phase: **1 – Audio-Kette**, umgesetzt auf Branch `v2/phase-1-audio-kette` (PR folgt auf PR #8, der noch auf Test und Merge wartet). Nächste Phase: **2 – Erkennung an echten Aufnahmen abstimmen** – dafür braucht es zuerst Aufnahmen vom iPhone (siehe unten).
 
 Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedback → Sterne → nächster Schritt.
 
@@ -9,7 +9,7 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 | Phase | Inhalt | Status |
 | --- | --- | --- |
 | 0 | Tag `v1-guitarcoach`, CLAUDE.md, PLAN.md, Altlasten entfernen, neues Navigationsgerüst | umgesetzt, PR #8 wartet auf Test und Merge |
-| 1 | Neue Audio-Kette (AudioWorklet), Kalibrierung, Erkennungs-Labor, Stimmgerät umgestellt | offen |
+| 1 | Neue Audio-Kette (AudioWorklet), Kalibrierung, Erkennungs-Labor, Stimmgerät umgestellt | umgesetzt, PR wartet auf Test und Merge |
 | 2 | Erkennung an echten Aufnahmen abstimmen, Benchmark in der CI, Zielwerte erreichen | offen |
 | 3 | Spielansicht mit Bewertung, Modi, Ergebnisbildschirm, Sterne | offen |
 | 4 | Lernpfad Level 1–3 mit Inhalten, Startseite „Nächster Schritt“, Einstufungstest | offen |
@@ -90,14 +90,52 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 - Neu: Navigation Start · Lernpfad · Stücke · Werkzeuge · Profil, Dexie-Schema v2 (`guitarcoach-v2`), `core/detection/pitchMatch.ts` (Tonvergleich, Anschlag-Sperre), `features/play/` (Bahn-Engine, Bahn-Ansicht, Zeitleiste, Spurfarben) als Grundlage für Phase 3.
 - Prüfungen: Typen, Lint, 157 Unit-Tests in 23 Dateien, Build, 9 E2E-Tests (davon 1 mit simuliertem Mikrofon).
 
-## Phase 1 – Vorschau (noch nicht begonnen)
-- `core/detection/`: Feature-Extraktion (Goertzel-Bänke für Zieltöne, Spektrum, YIN als Gegenprobe), Onset (Spectral Flux), Bewertung „Zielton anwesend?“, Kalibrierungsmodell.
-- `core/audio/micWorklet.ts` + `public/worklets/analyser.js`: 48 kHz, Fenster 2048, Schritt 480 (10 ms), Ringpuffer, Nachrichten an den Main-Thread nur mit Ergebnissen.
-- Kalibrierung beim ersten Start: 2 s Stille, Anschlag, Latenz zum Klick; gespeichert pro Gerät.
-- Erkennungs-Labor unter Profil → Einstellungen (versteckt): Live-Pegel, Tonhöhe, Zuverlässigkeit, Anschläge; Clips aufnehmen, beschriften, als WAV + JSON exportieren; Aufnahmeliste und Anleitung „vom iPhone ins Repo“.
-- Stimmgerät auf die neue Kette umstellen.
+## Phase 1 – Audio-Kette (umgesetzt)
 
-## Testen auf dem iPhone (Phase 0)
+### Erkennungs-Kern `src/core/detection/` (reine Logik, läuft im Worklet, in Vitest und später im Node-Benchmark)
+- `fft.ts` (reelle Radix-2-FFT, Hann-Fenster), `goertzel.ts` (Energie bei exakten Frequenzen, Rauschformel für Hann).
+- `onset.ts`: Anschlagerkennung über Spectral Flux (60 Hz – 5 kHz, log-komprimiert, normiert), adaptive Schwelle (Median × 1,6, Mindestwert 3), Spitzenwahl mit einem Schritt Verzögerung, Mindestabstand 60 ms, Pegel-Gate.
+- `presence.ts`: Zieltonprüfung „Ist der Ton da?“ – Teiltöne 1–5 per Goertzel auf 4096 Samples, jeder Teilton muss über Rauschen und Hintergrund liegen und näher am Ziel als am Nachbarhalbton; Oktavfehler „tiefer“ (0,5·f0 **und** 1,5·f0 vorhanden; nicht, wenn die untere Oktave selbst erwartet wird) und „höher“ (nur gerade Teiltöne). Schwelle `PRESENCE_THRESHOLD = 0,5` – wird in Phase 2 an echten Aufnahmen justiert.
+- `engine.ts`: `AnalysisEngine` – Schritt 10 ms, FFT 2048, Zieltonfenster 4096, YIN (70–1200 Hz) als Gegenprobe, Mindestpegel = max(0,0015, 3 × Grundrauschen). Liefert je Schritt ein `AnalysisFrame` (Zeit, RMS, Spitze, Tonhöhe, Flux, Anschlag, Zieltöne).
+- `calibration.ts` + `calibrationSession.ts`: Grundrauschen (90. Perzentil), Anschlagpegel, empfohlener Mindestpegel, Latenz (Median der Klick→Anschlag-Abstände, zuverlässig ab 3 Treffern und Streuung < 60 ms); Ablauf als Zustandsautomat.
+- `testSignals.ts`: synthetische Nylon-Zupftöne, Akkorde, Rauschen für Tests.
+
+### Mikrofon-Kette
+- `src/core/audio/worklet/analyser.worklet.ts` wird von Vite als eigene Datei gebündelt (`?worker&url`, 9 kB) und per `audioWorklet.addModule` geladen; rechnet im Audio-Thread, schickt nur Ergebnisse. Rohaudio nur während einer Aufnahme.
+- `src/core/audio/micWorklet.ts` (`MicAnalyser`), `mic.ts` (Stream mit echoCancellation/noiseSuppression/autoGainControl **aus**, Fehlertexte).
+- `src/hooks/useDetection.ts` ersetzt `usePitchDetection`: Tonhöhe (PitchTracker), Pegel, Anschläge, Zieltöne, `onFrame`/`onAudio`, Mindestpegel aus Kalibrierung × Empfindlichkeit.
+- Stimmgerät läuft auf der neuen Kette; Oberfläche unverändert.
+
+### Kalibrierung (`/kalibrierung`)
+- Drei Schritte mit je einer Hauptaktion: 2 s Stille → einmal über alle Saiten → 8 Töne zum Klick (80 BPM). Jeder Schritt lässt sich überspringen.
+- Ergebnis je Gerät in Dexie v2 (Tabelle `calibration`, Schlüssel Plattform|Browser|App/Tab|Abtastrate). Start zeigt ohne Kalibrierung „Mikrofon einrichten“ als Hauptaktion; Profil → Stimmgerät & Mikrofon zeigt die Werte und „Wiederholen“.
+
+### Erkennungs-Labor (`/profil/labor`, Karte unter Profil)
+- Live: Pegel (dBFS, Mindestpegel), Tonhöhe mit Cent, YIN-Zuverlässigkeit, Anschlagzähler, Zieltonprüfung je erwarteter Note der gewählten Vorgabe.
+- Aufnahmen: Vorgaben (6 Leersaiten, Tonleiter C-Dur, wiederholter Ton, Akkorde a-Moll/E/e-Moll/C/G/D, Etüde, Stille, frei), Notiz, bis 30 s; gespeichert in Dexie (Tabelle `clips`), abspielbar, löschbar, Export als WAV + JSON über den iOS-Teilen-Dialog (sonst Download).
+- Anleitung „Vom iPhone ins Repository“ in der App und in `test-audio/real/README.md` (GitHub-Upload direkt aus Safari nach `test-audio/real/`).
+
+### Entscheidungen (2026-10-19)
+- Worklet als TypeScript im Quellbaum statt `public/worklets/analyser.js`, damit der Analyse-Kern genau einmal existiert (Worklet, Tests, Benchmark).
+- Zieltonfenster 4096 Samples (85 ms) wegen der tiefen E-Saite; Anschläge und Tonhöhe auf 2048 (43 ms).
+- Alle Schwellen sind Startwerte; Phase 2 stellt sie anhand echter Aufnahmen ein und sichert sie im Benchmark.
+
+### Ergebnis Phase 1
+- Prüfungen: Typen, Lint, 184 Unit-Tests in 29 Dateien, Build, 11 E2E-Tests (3 mit simuliertem Mikrofon: Stimmgerät, Kalibrierung, Labor).
+- Offen: echte Aufnahmen vom iPhone; Verhalten auf iOS Safari (Worklet-Start, Hintergrund, Anruf) am Gerät prüfen.
+
+## Testen auf dem iPhone (Phase 1)
+1. Nach dem Merge https://lifaadm.github.io/Gitarre-/ öffnen (ggf. App neu laden, Schema v2 wird automatisch erweitert).
+2. Start zeigt „Mikrofon einrichten“ → Jetzt einrichten → Mikrofon erlauben → zwei Sekunden still → über alle Saiten → acht Töne zum Klick. Ergebnis: Rauschen (ruhiger Raum etwa −60 bis −50 dB), Anschlag (etwa −20 bis −6 dB), Verzögerung (etwa 60–150 ms). Speichern → Start zeigt „Gitarre stimmen“.
+3. Stimmgerät: alle sechs Saiten, Referenzton, Pegelanzeige. Mikrofon stoppen, App in den Hintergrund, zurück – kein Absturz, Mikrofon-Anzeige weg.
+4. Profil → Erkennungs-Labor → Mikrofon starten. Leere A-Saite: Tonhöhe A2, Zuverlässigkeit > 80 %, Anschlagzähler zählt jeden Anschlag genau einmal, Balken „A2“ der Zieltonprüfung grün. Vorgabe „Akkord a-Moll“ wählen, Akkord schlagen: alle fünf Balken grün.
+5. Aufnahmen: jede Leersaite dreimal, wiederholter Ton, Tonleiter, die Akkorde, zehn Sekunden Stille. Je Aufnahme Teilen → „In Dateien sichern“; danach in Safari über den Link in der Anleitung nach `test-audio/real/` hochladen. Das ist die Grundlage für Phase 2.
+
+## Phase 2 – Vorschau
+- `scripts/bench-detection.mjs` bzw. `npm run bench:detection`: liest `test-audio/real/*.wav` + `.json`, lässt die `AnalysisEngine` in Node laufen, meldet Trefferquote, Fehlalarme, Timing-Abweichung; schlägt in der CI unter den Zielwerten fehl (Einzeltöne ≥ 95 %, Fehlalarme < 3 %, Anschlag-Timing Median < 30 ms, Akkorde ≥ 90 %).
+- Schwellen (Presence, Flux, Gate), Oktavregeln und Nachklang-Behandlung an den Aufnahmen einstellen.
+
+## Testen auf dem iPhone (Phase 0, erledigt mit PR #8)
 1. https://lifaadm.github.io/Gitarre-/ öffnen, Home-Bildschirm-App einmal löschen und neu hinzufügen (neue Datenbank).
 2. Untere Navigation: vier Einträge, Profil oben rechts.
 3. Start zeigt eine Hauptaktion. Stimmgerät und Metronom funktionieren wie bisher.
