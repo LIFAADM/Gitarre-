@@ -15,8 +15,10 @@ test.describe('GuitarCoach v2 – Gerüst', () => {
     await expect(page.getByTestId('home-main-action')).toBeVisible();
     const nav = page.getByRole('navigation', { name: 'Hauptnavigation' });
     for (const label of ['Start', 'Lernpfad', 'Stücke', 'Werkzeuge']) await expect(nav.getByRole('link', { name: label })).toBeVisible();
+    // Ohne Kalibrierung ist der nächste Schritt: Mikrofon einrichten.
     await page.getByTestId('home-main-action').click();
-    await expect(page).toHaveURL(/\/werkzeuge\/stimmgeraet$/);
+    await expect(page).toHaveURL(/\/kalibrierung$/);
+    await expect(page.getByTestId('calibration-start')).toBeVisible();
   });
 
   test('Lernpfad zeigt das Level-Gerüst 1–7', async ({ page }) => {
