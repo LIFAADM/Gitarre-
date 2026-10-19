@@ -1,25 +1,30 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { centsBetween, midiToFrequency } from '@/core/music/notes';
-import { usePitchDetection, type PitchDetection } from '@/hooks/usePitchDetection';
+import { useDetection, type Detection } from '@/hooks/useDetection';
 import { evaluateReading, formatCents, formatHz, TunerWidget } from './TunerWidget';
 import { tuningStrings } from '@/core/music/tuning';
 
-vi.mock('@/hooks/usePitchDetection', () => ({ usePitchDetection: vi.fn() }));
-vi.mock('@/hooks/usePracticeSession', () => ({ usePracticeSession: () => ({ elapsedSec: () => 0, flush: async () => undefined }) }));
+vi.mock('@/hooks/useDetection', () => ({ useDetection: vi.fn() }));
 vi.mock('@/core/audio/guitarSynth', () => ({ playReferenceTone: vi.fn(() => vi.fn()) }));
 vi.mock('@/core/audio/audioContext', () => ({ unlockAudio: vi.fn(async () => ({})), getAudioContext: vi.fn(() => ({})) }));
 
-function detection(partial: Partial<PitchDetection> = {}): PitchDetection {
+function detection(partial: Partial<Detection> = {}): Detection {
   return {
     pitch: null,
     level: 0,
+    frame: null,
+    onset: null,
     status: 'idle',
     error: null,
     supported: true,
+    sampleRate: 48000,
+    gate: 0.01,
     start: vi.fn(async () => undefined),
     stop: vi.fn(),
     pause: vi.fn(),
+    setRecording: vi.fn(),
+    audioContext: () => null,
     ...partial,
   };
 }
@@ -31,9 +36,9 @@ function stablePitch(frequency: number) {
   return { frequency, midi, cents: (midiFloat - midi) * 100, stable: true, level: 0.05 };
 }
 
-function mockDetection(partial: Partial<PitchDetection> = {}): PitchDetection {
+function mockDetection(partial: Partial<Detection> = {}): Detection {
   const value = detection(partial);
-  vi.mocked(usePitchDetection).mockReturnValue(value);
+  vi.mocked(useDetection).mockReturnValue(value);
   return value;
 }
 

@@ -3,10 +3,10 @@ import { CircleCheck, Mic, MicOff, Play, RotateCcw, Square, TriangleAlert, Volum
 import { Badge, Button, Card, Segmented, useToast } from '@/components/ui';
 import { unlockAudio } from '@/core/audio/audioContext';
 import { playReferenceTone } from '@/core/audio/guitarSynth';
-import { RMS_GATE, type TrackedPitch } from '@/core/audio/pitch/pitchTracker';
+import type { TrackedPitch } from '@/core/audio/pitch/pitchTracker';
 import { centsBetween, clamp, noteName, octaveOf, type NoteNaming } from '@/core/music/notes';
 import { STANDARD_TUNING, tuningStrings, type TuningString } from '@/core/music/tuning';
-import { usePitchDetection } from '@/hooks/usePitchDetection';
+import { useDetection } from '@/hooks/useDetection';
 import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/cn';
 
@@ -238,7 +238,7 @@ export function TunerWidget({ compact = false, onAllStringsTuned }: TunerWidgetP
   const [tuned, setTuned] = useState<ReadonlySet<number>>(() => new Set<number>());
   const [referencePlaying, setReferencePlaying] = useState<number | null>(null);
 
-  const { pitch, level, status, error, supported, start, stop, pause } = usePitchDetection({ enabled: true, sensitivity, a4Hz });
+  const { pitch, level, status, error, supported, start, stop, pause, gate } = useDetection({ enabled: true, sensitivity, a4Hz });
   const listening = status === 'listening';
 
   const selected = strings.find((s) => s.number === selectedNumber) ?? strings[0]!;
@@ -424,7 +424,7 @@ export function TunerWidget({ compact = false, onAllStringsTuned }: TunerWidgetP
         {hint && <p className="mt-1 text-center text-sm leading-relaxed text-muted">{hint}</p>}
 
         <div className={compact ? 'mt-3' : 'mt-4'}>
-          <LevelMeter level={level} gate={RMS_GATE[sensitivity]} active={listening} />
+          <LevelMeter level={level} gate={gate} active={listening} />
         </div>
       </Card>
 
