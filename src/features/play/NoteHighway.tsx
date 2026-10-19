@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { HighwayNote, NoteResult } from './highwayEngine';
-import { KIDS_STRINGS, kidString } from './kidsData';
+import { LANES, lane } from './lanes';
 import { cn } from '@/lib/cn';
 
 export interface NoteHighwayProps {
@@ -18,7 +18,7 @@ const LANE_H = 46;
 const HIT_X = 84;
 
 /**
- * Mitspiel-Bahn: sechs farbige Spuren (dicke rote Saite oben), Noten laufen von rechts auf die Trefflinie zu.
+ * Bahn: sechs farbige Saitenspuren, Noten laufen von rechts auf die Trefflinie zu.
  * Nur die Verschiebung wird pro Bild gesetzt (transform), die Noten selbst werden nicht neu gerendert.
  */
 export function NoteHighway({ notes, results, getTime, currentIndex, pxPerSec = 150, laneLabel }: NoteHighwayProps) {
@@ -40,7 +40,7 @@ export function NoteHighway({ notes, results, getTime, currentIndex, pxPerSec = 
   return (
     <div className="relative -mx-4 overflow-hidden rounded-[1.5rem] border-2 border-white/10 bg-black/30" style={{ height: LANE_H * 6 + 8 }} aria-label="Mitspiel-Bahn">
       {/* Spuren */}
-      {KIDS_STRINGS.map((s) => (
+      {LANES.map((s) => (
         <div key={s.number} className="absolute inset-x-0 flex items-center" style={{ top: laneTop(s.number) + 4, height: LANE_H - 4, background: `${s.color}22`, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <span className="ml-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-extrabold text-white shadow" style={{ backgroundColor: s.color }} aria-hidden>
             {laneLabel ? laneLabel(s.number) : s.number}
@@ -52,7 +52,7 @@ export function NoteHighway({ notes, results, getTime, currentIndex, pxPerSec = 
       {/* Notenspur */}
       <div ref={trackRef} className="absolute inset-y-0" style={{ left: HIT_X, willChange: 'transform' }}>
         {notes.map((n) => {
-          const s = kidString(n.string);
+          const s = lane(n.string);
           const r = results[n.index] ?? 'pending';
           const width = Math.max(44, n.durationSec * pxPerSec - 8);
           const isCurrent = currentIndex === n.index;

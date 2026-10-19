@@ -1,23 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Ear, Gauge, Guitar, Hand, ListMusic, Pause, Play, Repeat, SkipBack, Square, Timer, ZoomIn, ZoomOut } from 'lucide-react';
-import { Link } from 'react-router';
+import { ChevronLeft, ChevronRight, Guitar, Hand, Pause, Play, Repeat, SkipBack, Square, Timer, ZoomIn, ZoomOut } from 'lucide-react';
 import { Badge, Button, IconButton, Segmented, Sheet, Slider, Toggle, useToast } from '@/components/ui';
 import { outputLatencySeconds, unlockAudio } from '@/core/audio/audioContext';
-import { setMediaPlaybackState, startMediaSession } from '@/core/audio/mediaSession';
 import { countWords } from '@/core/speech/phrases';
-import { playthroughTip, startTip } from '@/core/coach/coach';
-import { getDb } from '@/core/storage/db';
 import { sayNow } from '@/hooks/useSpeech';
 import { TEMPO_FACTORS, type LoopRange } from '@/core/audio/tabPlayer';
 import { formatSeconds } from '@/core/music/durations';
 import { noteNameWithOctave } from '@/core/music/notes';
-import { buildMixPlan, type BeatRef } from '@/core/music/playback';
+import { buildPlaybackPlan, type BeatRef } from '@/core/music/playback';
 import type { Score } from '@/core/music/score';
-import { ProgressRepository } from '@/core/storage/repositories';
-import type { PracticeKind } from '@/core/storage/types';
 import { Fretboard, type FretboardHighlight } from '@/features/fretboard/Fretboard';
 import { useEngine, usePlayerSnapshot } from '@/hooks/useEngine';
-import { usePracticeSession } from '@/hooks/usePracticeSession';
 import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/cn';
 import { ScoreView } from './ScoreView';
@@ -25,41 +18,25 @@ import { TabView, type TabViewHandle } from './TabView';
 
 export interface SongPlayerProps {
   score: Score;
-  /** Song-ID für Fortschritt und Zuletzt-gespielt (optional, z. B. nicht bei Übungen). */
-  songId?: string;
   title?: string;
-  practiceKind?: PracticeKind;
-  practiceRefId?: string;
   initialTempoFactor?: number;
+  /** Kompakte Darstellung ohne Ansichtsumschaltung. */
   compact?: boolean;
-  /** Link zum Spiel-mit-Modus anzeigen. */
-  listenHref?: string;
-  /** Link zur Mitspiel-Bahn anzeigen. */
-  highwayHref?: string;
-  /** Importdatei (für die Noten-Ansicht aus der Originaldatei). */
-  sourceFileId?: string;
-  onPlaythroughComplete?: (info: { tempoFactor: number }) => void;
 }
 
 const TEMPO_PRESETS = [0.25, 0.5, 0.75, 1] as const;
 /** Vorlauf, damit das gesprochene Zählwort ungefähr mit dem Klick zusammenfällt (Sprachausgabe startet verzögert). */
 const SPEECH_LEAD_MS = 80;
 
-export function SongPlayer({ score, songId, title, practiceKind = 'song', practiceRefId, initialTempoFactor, compact = false, listenHref, highwayHref, sourceFileId, onPlaythroughComplete }: SongPlayerProps) {
+export function SongPlayer({ score, initialTempoFactor, compact = false }: SongPlayerProps) {
   const engine = useEngine();
   const { player, synth } = engine;
   const snapshot = usePlayerSnapshot();
   const [settings, updateSettings] = useSettings();
   const toast = useToast();
 
-  const [trackIndex, setTrackIndex] = useState(0);
-  const [accompaniment, setAccompaniment] = useState<number[]>([]);
-  const [accompanimentGain, setAccompanimentGain] = useState(0.5);
-  const safeTrackIndex = Math.min(trackIndex, Math.max(0, score.tracks.length - 1));
-  const plan = useMemo(
-    () => buildMixPlan(score, safeTrackIndex, accompaniment.map((i) => ({ trackIndex: i, gain: accompanimentGain }))),
-    [score, safeTrackIndex, accompaniment, accompanimentGain],
-  );
+  const safeTrackIndex = 0;
+  const plan = useMemo(() => buildPlaybackPlan(score, safeTrackIndex), [score]);
   const track = score.tracks[safeTrackIndex]!;
   const voice0Beats = useMemo(() => plan.beats.filter((b) => b.voice === 0), [plan]);
 
@@ -69,23 +46,11 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
   const [loopAnchor, setLoopAnchor] = useState<number | null>(null);
   const [loopSheet, setLoopSheet] = useState(false);
   const [tempoSheet, setTempoSheet] = useState(false);
-  const [trackSheet, setTrackSheet] = useState(false);
   const [showFretboard, setShowFretboard] = useState(!compact);
   const [fineTempo, setFineTempo] = useState(Math.round((initialTempoFactor ?? 1) * 100));
   const [view, setView] = useState<'tab' | 'score'>(compact ? 'tab' : settings.defaultNotationView);
   const tabRef = useRef<TabViewHandle | null>(null);
-  const maxTempoUsed = useRef(initialTempoFactor ?? 1);
   const startedFromBeginning = useRef(true);
-  const startTipShown = useRef(false);
-
-  const practiceId = practiceRefId ?? songId;
-  const practiceOptions = useMemo(() => {
-    const o: { refId?: string; title?: string } = {};
-    if (practiceId) o.refId = practiceId;
-    if (title) o.title = title;
-    return o;
-  }, [practiceId, title]);
-  const { elapsedSec } = usePracticeSession(practiceKind, practiceOptions);
 
   // Plan laden
   useEffect(() => {
@@ -116,6 +81,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
     };
     const offCountIn = player.onCountIn(({ beats, beatSec, firstClickTime }) => {
       clear();
+      if (!settings.spokenCountIn) return;
       const base = (firstClickTime - engine.ctx.currentTime) * 1000 - SPEECH_LEAD_MS;
       countWords(beats).forEach((word, i) => {
         timers.push(window.setTimeout(() => void sayNow('countIn', word), Math.max(0, base + i * beatSec * 1000)));
@@ -129,52 +95,15 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
       offCountIn();
       offStatus();
     };
-  }, [player, engine.ctx]);
-
-  // Kopfhörer-/Sperrbildschirm-Steuerung (experimentell)
-  useEffect(() => {
-    if (!settings.headsetControls) return;
-    const stopSession = startMediaSession(
-      { title: title ?? 'GuitarCoach' },
-      {
-        play: () => void unlockAudio().then(() => player.play()),
-        pause: () => player.pause(),
-        stop: () => player.stop(),
-      },
-    );
-    const off = player.subscribe((s) => setMediaPlaybackState(s.status === 'playing' || s.status === 'counting' ? 'playing' : 'paused'));
-    return () => {
-      off();
-      stopSession();
-    };
-  }, [settings.headsetControls, player, title]);
-
-  // Songfortschritt beim Verlassen speichern
-  useEffect(() => {
-    if (!songId) return;
-    return () => {
-      const addSec = Math.round(elapsedSec());
-      if (addSec >= 5) void new ProgressRepository().updateSongProgress(songId, { addSec, tempoFactor: maxTempoUsed.current });
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [songId]);
+  }, [player, engine.ctx, settings.spokenCountIn]);
 
   // Durchlauf beendet
   useEffect(() => {
     return player.onEnded(() => {
       if (!startedFromBeginning.current || snapshot.loop) return;
-      const factor = player.snapshot().tempoFactor;
-      maxTempoUsed.current = Math.max(maxTempoUsed.current, factor);
-      if (songId) void new ProgressRepository().updateSongProgress(songId, { addSec: 0, tempoFactor: factor, completedPlaythrough: true });
-      toast.show(`Durchlauf geschafft (${Math.round(factor * 100)} % Tempo)!`, 'success');
-      if (settings.coachTips) {
-        const tip = playthroughTip(factor);
-        toast.show(`Tipp: ${tip.text}`, 'info', 8000);
-        void sayNow('tips', tip.spoken ?? tip.text, { interrupt: false });
-      }
-      onPlaythroughComplete?.({ tempoFactor: factor });
+      toast.show(`Durchlauf geschafft (${Math.round(player.snapshot().tempoFactor * 100)} % Tempo)!`, 'success');
     });
-  }, [player, songId, toast, onPlaythroughComplete, snapshot.loop, settings.coachTips]);
+  }, [player, toast, snapshot.loop]);
 
   // Positions-Loop (rAF)
   useEffect(() => {
@@ -224,18 +153,8 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
     else {
       startedFromBeginning.current = player.getPositionSec() < 0.01;
       player.play();
-      // Coach: noch nie durchgespielt und gleich im vollen Tempo? Einmal pro Besuch langsam anfangen empfehlen.
-      if (startedFromBeginning.current && songId && settings.coachTips && !startTipShown.current) {
-        startTipShown.current = true;
-        void getDb()
-          .songProgress.get(songId)
-          .then((p) => {
-            const tip = startTip({ completedPlaythroughs: p?.completedPlaythroughs ?? 0, tempoFactor: player.snapshot().tempoFactor, bars: plan.barInstances.length });
-            if (tip) toast.show(`Tipp: ${tip.text}`, 'info', 8000);
-          });
-      }
     }
-  }, [isPlaying, player, songId, settings.coachTips, plan.barInstances.length, toast]);
+  }, [isPlaying, player]);
 
   const setTempo = (factor: number): void => {
     player.setTempoFactor(factor);
@@ -282,15 +201,6 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
   };
 
   const currentInstance = currentBeat?.instanceIndex ?? null;
-
-  // Abschnittsnamen („Refrain“) ansagen, wenn die Wiedergabe einen neuen Abschnitt erreicht
-  const lastSectionRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (snapshot.status !== 'playing' || currentInstance === null) return;
-    const section = plan.barInstances[currentInstance]?.section ?? null;
-    if (section && section !== lastSectionRef.current) void sayNow('player', section, { interrupt: false });
-    lastSectionRef.current = section;
-  }, [currentInstance, snapshot.status, plan]);
   const effectiveBpm = Math.round((plan.barInstances[currentInstance ?? 0]?.tempo ?? score.tempo) * snapshot.tempoFactor);
   const totalScaled = plan.totalSec / snapshot.tempoFactor;
   const posScaled = positionSec / snapshot.tempoFactor;
@@ -336,7 +246,6 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
           </Badge>
         )}
         {snapshot.status === 'counting' && <Badge tone="gold">Einzähler …</Badge>}
-        {plan.accompanimentTracks && plan.accompanimentTracks.length > 0 && <Badge tone="info">+{plan.accompanimentTracks.length} Begleitspur{plan.accompanimentTracks.length > 1 ? 'en' : ''}</Badge>}
         {selectingLoop && <Badge tone="warn">Takte antippen: {loopAnchor === null ? 'Anfang' : 'Ende'}</Badge>}
       </div>
 
@@ -373,7 +282,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
       )}
       {view === 'score' && !compact && (
         <div className="rounded-card border border-border/70 bg-surface px-1 py-2">
-          <ScoreView score={score} trackIndex={safeTrackIndex} {...(sourceFileId ? { sourceFileId } : {})} zoom={zoom} />
+          <ScoreView score={score} trackIndex={safeTrackIndex} zoom={zoom} />
           <p className="px-2 pt-1 text-[11px] text-muted">Partitur-Ansicht (klassische Notenschrift + Tab). Abspielmarke, Schleifen-Auswahl und Antippen von Noten gibt es in der Tabulatur-Ansicht.</p>
         </div>
       )}
@@ -472,23 +381,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
               Griffbrett
             </Button>
           )}
-          {score.tracks.length > 1 ? (
-            <Button size="sm" variant="secondary" icon={<ListMusic size={16} />} onClick={() => setTrackSheet(true)}>
-              Spur {safeTrackIndex + 1}
-            </Button>
-          ) : (
-            <div className="flex items-center justify-end gap-1">
-              <IconButton label="Verkleinern" size="sm" variant="secondary" onClick={() => setZoom(zoom - 0.1)}>
-                <ZoomOut size={16} />
-              </IconButton>
-              <IconButton label="Vergrößern" size="sm" variant="secondary" onClick={() => setZoom(zoom + 0.1)}>
-                <ZoomIn size={16} />
-              </IconButton>
-            </div>
-          )}
-        </div>
-        {score.tracks.length > 1 && (
-          <div className="mt-2 flex items-center justify-end gap-1">
+          <div className="flex items-center justify-end gap-1">
             <IconButton label="Verkleinern" size="sm" variant="secondary" onClick={() => setZoom(zoom - 0.1)}>
               <ZoomOut size={16} />
             </IconButton>
@@ -496,21 +389,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
               <ZoomIn size={16} />
             </IconButton>
           </div>
-        )}
-        {(listenHref || highwayHref) && (
-          <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: listenHref && highwayHref ? '1fr 1fr' : '1fr' }}>
-            {highwayHref && (
-              <Link to={highwayHref} className="flex items-center justify-center gap-2 rounded-2xl bg-gold px-3 py-3 text-sm font-semibold text-[#1b1507]" data-testid="highway-link">
-                <Gauge size={18} /> Mitspiel-Bahn
-              </Link>
-            )}
-            {listenHref && (
-              <Link to={listenHref} className="flex items-center justify-center gap-2 rounded-2xl border border-gold/40 bg-gold/10 px-3 py-3 text-sm font-semibold text-gold">
-                <Ear size={18} /> Spiel mit (Note für Note)
-              </Link>
-            )}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Tempo-Sheet */}
@@ -544,6 +423,7 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
             label="Einzähler"
             description="Ein Takt Metronom vor dem Start (nur wenn das Metronom an ist)."
           />
+          <Toggle checked={settings.spokenCountIn} onChange={(v) => void updateSettings({ spokenCountIn: v })} label="Einzähler mitsprechen" description="„Eins, zwei, drei, vier“ zu den Klicks (Systemstimme)." />
           <Toggle checked={settings.autoScroll} onChange={(v) => void updateSettings({ autoScroll: v })} label="Automatisch scrollen" />
           <Toggle checked={settings.showFingerNumbers} onChange={(v) => void updateSettings({ showFingerNumbers: v })} label="Fingersatz anzeigen" description="Kleine Ziffern über der Tabulatur (1 = Zeigefinger … 4 = kleiner Finger)." />
         </div>
@@ -603,44 +483,6 @@ export function SongPlayer({ score, songId, title, practiceKind = 'song', practi
         </div>
       </Sheet>
 
-      {/* Spuren-Sheet */}
-      <Sheet open={trackSheet} onClose={() => setTrackSheet(false)} title="Spuren">
-        <p className="text-sm text-muted">Die Hauptspur wird angezeigt und geübt. Weitere Spuren können leiser mitgespielt werden.</p>
-        <div className="mt-3 flex flex-col gap-2">
-          {score.tracks.map((t, i) => (
-            <div key={t.id} className={cn('flex items-center justify-between gap-2 rounded-2xl border px-4 py-3', i === safeTrackIndex ? 'border-gold bg-gold/10' : 'border-border bg-surface-2')}>
-              <button
-                type="button"
-                onClick={() => {
-                  setTrackIndex(i);
-                  setAccompaniment((list) => list.filter((x) => x !== i));
-                }}
-                className="min-w-0 flex-1 text-left"
-              >
-                <span className="block font-semibold">{t.name}</span>
-                <span className="block text-xs text-muted">
-                  {t.tuning.length} Saiten · {t.bars.length} Takte
-                </span>
-              </button>
-              {i === safeTrackIndex ? (
-                <Badge tone="gold">Hauptspur</Badge>
-              ) : (
-                <Button size="sm" variant={accompaniment.includes(i) ? 'primary' : 'secondary'} onClick={() => setAccompaniment((list) => (list.includes(i) ? list.filter((x) => x !== i) : [...list, i]))}>
-                  {accompaniment.includes(i) ? 'spielt mit' : 'mitspielen'}
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-        {accompaniment.length > 0 && (
-          <div className="mt-3">
-            <Slider label="Lautstärke der Begleitspuren" value={Math.round(accompanimentGain * 100)} min={10} max={100} step={10} onChange={(v) => setAccompanimentGain(v / 100)} format={(v) => `${v} %`} />
-          </div>
-        )}
-        <Button className="mt-4" full variant="primary" onClick={() => setTrackSheet(false)}>
-          Fertig
-        </Button>
-      </Sheet>
     </div>
   );
 }

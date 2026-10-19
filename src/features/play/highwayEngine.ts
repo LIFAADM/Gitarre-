@@ -10,7 +10,7 @@
  * `onPitch()` aus der Tonhöhenerkennung.
  */
 
-import { evaluatePitch } from '@/features/listen/listenLogic';
+import { evaluatePitch } from '@/core/detection/pitchMatch';
 
 export interface HighwayNote {
   index: number;

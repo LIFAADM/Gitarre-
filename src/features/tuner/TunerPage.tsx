@@ -1,4 +1,3 @@
-import { ProgressRepository } from '@/core/storage/repositories';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import { Link } from 'react-router';
@@ -21,7 +20,7 @@ export function TunerPage() {
     <div className="flex flex-col gap-4 pb-4">
       <PageHeader title="Stimmgerät" subtitle="Standardstimmung E–A–D–G–H–E" back="/werkzeuge" />
 
-      <TunerWidget onAllStringsTuned={() => void new ProgressRepository().recordSession({ kind: 'tuner', startedAt: Date.now() - 1000, title: 'Alle Saiten gestimmt', details: { completed: true } })} />
+      <TunerWidget />
 
       <Card padding="none">
         <button type="button" onClick={() => setGuideOpen((v) => !v)} aria-expanded={guideOpen} aria-controls="tuner-guide" className="flex w-full items-center gap-3 p-4 text-left">
@@ -54,7 +53,7 @@ export function TunerPage() {
 
       <p className="text-sm text-muted">
         Als „richtig gestimmt“ gilt eine Abweichung bis ±{settings.tunerToleranceCents} Cent. Toleranz und Empfindlichkeit kannst du in den{' '}
-        <Link to="/einstellungen" className="font-semibold text-gold underline-offset-2 hover:underline">
+        <Link to="/profil" className="font-semibold text-gold underline-offset-2 hover:underline">
           Einstellungen
         </Link>{' '}
         ändern.

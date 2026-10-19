@@ -1,7 +1,5 @@
 import { Lightbulb } from 'lucide-react';
 import { Card, PageHeader } from '@/components/ui';
-import { useMetronomeState } from '@/hooks/useEngine';
-import { usePracticeSession } from '@/hooks/usePracticeSession';
 import { MetronomeWidget } from './MetronomeWidget';
 
 const TIPS: ReadonlyArray<{ title: string; text: string }> = [
@@ -28,10 +26,6 @@ const TIPS: ReadonlyArray<{ title: string; text: string }> = [
 ];
 
 export function MetronomePage() {
-  const state = useMetronomeState();
-  // Nur die Zeit mit laufendem Metronom zählt als Übungszeit.
-  usePracticeSession('metronome', { active: state.running, details: () => ({ bpm: state.bpm }) });
-
   return (
     <>
       <PageHeader title="Metronom" subtitle="Gleichmäßig üben – das Fundament für alles" back="/werkzeuge" />

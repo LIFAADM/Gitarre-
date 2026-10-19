@@ -1,6 +1,6 @@
 # PLAN.md – GuitarCoach v2
 
-Stand: 2026-10-19 · Aktuelle Phase: **0 – Plan & Aufräumen** (Branch `v2/phase-0-plan-und-aufraeumen`)
+Stand: 2026-10-19 · Aktuelle Phase: **0 – Plan & Aufräumen**, umgesetzt in PR #8 (Branch `v2/phase-0-plan-und-aufraeumen`). Nächste Phase nach dem Merge: **1 – Audio-Kette**.
 
 Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedback → Sterne → nächster Schritt.
 
@@ -8,7 +8,7 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 
 | Phase | Inhalt | Status |
 | --- | --- | --- |
-| 0 | Tag `v1-guitarcoach`, CLAUDE.md, PLAN.md, Altlasten entfernen, neues Navigationsgerüst | in Arbeit |
+| 0 | Tag `v1-guitarcoach`, CLAUDE.md, PLAN.md, Altlasten entfernen, neues Navigationsgerüst | umgesetzt, PR #8 wartet auf Test und Merge |
 | 1 | Neue Audio-Kette (AudioWorklet), Kalibrierung, Erkennungs-Labor, Stimmgerät umgestellt | offen |
 | 2 | Erkennung an echten Aufnahmen abstimmen, Benchmark in der CI, Zielwerte erreichen | offen |
 | 3 | Spielansicht mit Bewertung, Modi, Ergebnisbildschirm, Sterne | offen |
@@ -23,7 +23,7 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 - Sicherung des alten Stands (`main` = b6820e0): Branch `v1-guitarcoach` auf GitHub angelegt. Der Tag `v1-guitarcoach` ist lokal gesetzt, lässt sich aus dieser Umgebung aber nicht pushen (der Git-Proxy trennt beim Tag-Push). Bitte einmalig auf GitHub anlegen: Releases → „Draft a new release“ → „Choose a tag“ → `v1-guitarcoach` eintippen → Target `v1-guitarcoach` (Branch) → „Publish release“. Wiederherstellen danach mit `git checkout v1-guitarcoach`.
 - `CLAUDE.md` (Prinzip, Regeln, Zielarchitektur) und diese `PLAN.md`.
 
-### Löschliste (wird erst nach Freigabe ausgeführt)
+### Löschliste (freigegeben am 2026-10-19, umgesetzt)
 
 **Kinder-Modus und Kinder-Schule komplett**
 - `src/features/kids/` (alle Dateien), Routen `/kinder/*`, Einstellungen `kidsMode`, `speechKids`, Umleitung der Startroute, Kinder-Karten in Dashboard und Einstellungen, Feld `forKids` am Song, Kinder-Fortschritt im Meta-Speicher.
@@ -68,22 +68,27 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 - Werkzeuge: Stimmgerät, Metronom, Akkordbibliothek (Platzhalter bis Phase 5).
 - Profil: Einstellungen (Kammerton, Toleranzen, Lautstärken, gesprochener Einzähler aus), Erkennungs-Labor als versteckter Eintrag (Phase 1).
 
-### Issues mit Label `idee` (werden nach Freigabe angelegt)
-1. Kinder-Modus und Kinder-Schule (Farben, Spiele, Elternsperre) als eigene App
-2. Import von Tab-Dateien (Guitar Pro, MusicXML, MIDI, Text-Tabs)
-3. Tab-Editor für eigene Melodien
-4. Mitspielmodus mit eigener Audioaufnahme und Zeitmarken
-5. Mehrspurige Wiedergabe von Begleitspuren
-6. Sprachbegleitung (Vorlesen, Ansagen, Coach-Tipps gesprochen)
-7. Geschützte Songs und Kinder-Hits als Einträge mit Import-Weg
-8. Kopfhörer-/Sperrbildschirm-Steuerung (Media Session)
-9. Native iOS-App mit Capacitor
-10. Spiel-mit-Modus Note für Note (ohne Bahn)
+### Issues mit Label `idee` (angelegt)
+- #9 Kinder-Modus und Kinder-Schule als eigene App
+- #10 Import von Tab-Dateien
+- #11 Tab-Editor
+- #12 Mitspielmodus mit eigener Audioaufnahme
+- #13 Mehrspurige Wiedergabe
+- #14 Sprachbegleitung
+- #15 Geschützte Songs und Kinder-Hits
+- #16 Kopfhörer-/Sperrbildschirm-Steuerung
+- #17 Native iOS-App mit Capacitor
+- #18 Spiel-mit-Modus Note für Note
 
-### Offene Fragen an den Besitzer
-- Benchmark-Zielwerte bestätigen: Einzeltöne ≥ 95 % richtig, < 3 % Fehlalarme, Anschlag-Timing im Median < 30 ms, Akkorde ≥ 90 %.
-- Vorläufiges „Vorhören“ unter Stücke bis Phase 3: ja (Vorschlag) oder konsequent entfernen?
-- Alte Gitarrenschule (44 Lektionen) komplett entfernen (Vorschlag), die Texte dienen als Steinbruch für die Lernpfad-Lektionen in Phase 4.
+### Entscheidungen (2026-10-19)
+- Benchmark-Zielwerte bestätigt: Einzeltöne ≥ 95 % richtig, < 3 % Fehlalarme, Anschlag-Timing im Median < 30 ms, Akkorde ≥ 90 %.
+- Vorläufiges „Vorhören“ unter Stücke bleibt bis Phase 3.
+- Alte Gitarrenschule komplett entfernt; Texte über `v1-guitarcoach` als Steinbruch.
+
+### Ergebnis Phase 0
+- Entfernt: Kinder-Modus, Import, Editor, Mitspielmodus, Mehrspur, geschützte Songs, Spiel-mit, Griffbrett-Seite, alte Schule, Dashboard, Fortschritt, Lernziele, Backup, Sprachbegleitung (bis auf Einzähler), Media Session, STATUS/ROADMAP/ARCHITECTURE.
+- Neu: Navigation Start · Lernpfad · Stücke · Werkzeuge · Profil, Dexie-Schema v2 (`guitarcoach-v2`), `core/detection/pitchMatch.ts` (Tonvergleich, Anschlag-Sperre), `features/play/` (Bahn-Engine, Bahn-Ansicht, Zeitleiste, Spurfarben) als Grundlage für Phase 3.
+- Prüfungen: Typen, Lint, 157 Unit-Tests in 23 Dateien, Build, 9 E2E-Tests (davon 1 mit simuliertem Mikrofon).
 
 ## Phase 1 – Vorschau (noch nicht begonnen)
 - `core/detection/`: Feature-Extraktion (Goertzel-Bänke für Zieltöne, Spektrum, YIN als Gegenprobe), Onset (Spectral Flux), Bewertung „Zielton anwesend?“, Kalibrierungsmodell.

@@ -27,11 +27,6 @@ export default defineConfig({
       testMatch: /mic-tuner\.spec\.ts/,
       use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium', permissions: ['microphone'], launchOptions: { ...(chromiumPath ? { executablePath: chromiumPath } : {}), args: micArgs('a2-110hz.wav') } },
     },
-    {
-      name: 'mic-listen',
-      testMatch: /mic-listen\.spec\.ts/,
-      use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium', permissions: ['microphone'], launchOptions: { ...(chromiumPath ? { executablePath: chromiumPath } : {}), args: micArgs('open-strings.wav') } },
-    },
   ],
   webServer: {
     command: 'npm run preview -- --port 4173 --strictPort',

@@ -1,5 +1,6 @@
 /**
- * Reine Logik des Spiel-mit-Modus (testbar): Vergleich erkannter Tonhöhe mit erwarteten Noten.
+ * Vergleich einer erkannten Tonhöhe mit erwarteten Tönen sowie Anschlag-Sperre gegen Doppelwertung.
+ * Reine Logik ohne Browser-APIs. Die erwartungsgeführte Erkennung (Phase 1/2) baut hierauf auf.
  */
 
 export type Verdict =
@@ -8,7 +9,8 @@ export type Verdict =
   | { kind: 'octave'; midi: number; expected: number }
   | { kind: 'wrong'; midi: number; expected: number };
 
-export function evaluatePitch(expectedMidis: number[], detected: { midi: number; cents: number }, toleranceCents: number): Verdict {
+/** Ordnet eine erkannte Tonhöhe dem nächstgelegenen erwarteten Ton zu und bewertet die Abweichung in Cent. */
+export function evaluatePitch(expectedMidis: readonly number[], detected: { midi: number; cents: number }, toleranceCents: number): Verdict {
   if (expectedMidis.length === 0) return { kind: 'wrong', midi: detected.midi, expected: -1 };
   const detectedCents = detected.midi * 100 + detected.cents;
   let best = expectedMidis[0]!;
@@ -27,30 +29,8 @@ export function evaluatePitch(expectedMidis: number[], detected: { midi: number;
   return { kind: 'wrong', midi: detected.midi, expected: best };
 }
 
-export interface ListenStep {
-  beatRef: number;
-  midis: number[];
-  positions: Array<{ string: number; fret: number; midi: number; finger?: number }>;
-}
-
-export type StepResult = 'correct' | 'skipped' | 'pending';
-
-export interface ListenSummary {
-  total: number;
-  correct: number;
-  skipped: number;
-  accuracy: number;
-}
-
-export function summarizeResults(results: StepResult[]): ListenSummary {
-  const total = results.length;
-  const correct = results.filter((r) => r === 'correct').length;
-  const skipped = results.filter((r) => r === 'skipped').length;
-  return { total, correct, skipped, accuracy: total > 0 ? (correct / total) * 100 : 0 };
-}
-
 /**
- * Erkennung eines neuen Anschlags (Onset) über den Pegelverlauf:
+ * Erkennung eines neuen Anschlags über den Pegelverlauf:
  * Nach einem Treffer wird erst wieder gewertet, wenn der Pegel deutlich gefallen ist oder sprunghaft steigt.
  */
 export class OnsetGate {

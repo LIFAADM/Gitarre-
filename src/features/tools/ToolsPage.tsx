@@ -1,23 +1,25 @@
-import { BookOpen, Gauge, Guitar, PencilLine, Settings, Timer, Trophy, Upload } from 'lucide-react';
+import { Gauge, Grid3x3, Timer, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { PageHeader, PressableCard } from '@/components/ui';
+import { IconButton, PageHeader, PressableCard } from '@/components/ui';
 
 const TOOLS = [
   { href: '/werkzeuge/stimmgeraet', title: 'Stimmgerät', text: 'Mit dem iPhone-Mikrofon stimmen', icon: Gauge },
-  { href: '/werkzeuge/griffbrett', title: 'Griffbrett', text: 'Töne finden, hören und üben', icon: Guitar },
   { href: '/werkzeuge/metronom', title: 'Metronom', text: '40–220 BPM, Taktarten, Akzent', icon: Timer },
-  { href: '/lernen/tabs-lesen', title: 'Tabs verstehen', text: 'Interaktive Einführung', icon: BookOpen },
-  { href: '/werkzeuge/editor', title: 'Tab-Editor', text: 'Eigene Melodien erstellen', icon: PencilLine },
-  { href: '/songs/import', title: 'Import', text: 'Guitar Pro, MusicXML, MIDI, JSON', icon: Upload },
-  { href: '/fortschritt', title: 'Mein Fortschritt', text: 'Statistiken, Ziele, Erfolge', icon: Trophy },
-  { href: '/einstellungen', title: 'Einstellungen', text: 'Stimmung, Toleranzen, Datensicherung', icon: Settings },
+  { href: '/werkzeuge/akkorde', title: 'Akkordbibliothek', text: 'Griffbilder, kommt in Phase 5', icon: Grid3x3 },
 ];
 
 export function ToolsPage() {
   const navigate = useNavigate();
   return (
     <>
-      <PageHeader title="Werkzeuge" />
+      <PageHeader
+        title="Werkzeuge"
+        actions={
+          <IconButton label="Profil" onClick={() => navigate('/profil')}>
+            <UserRound size={22} />
+          </IconButton>
+        }
+      />
       <div className="grid grid-cols-2 gap-2">
         {TOOLS.map(({ href, title, text, icon: Icon }) => (
           <PressableCard key={href} onClick={() => navigate(href)} className="min-h-28">

@@ -1,5 +1,5 @@
 import type { PlaybackPlan } from '@/core/music/playback';
-import type { HighwayNote } from '@/features/kids/highwayEngine';
+import type { HighwayNote } from './highwayEngine';
 
 export interface PlanTimeline {
   notes: HighwayNote[];

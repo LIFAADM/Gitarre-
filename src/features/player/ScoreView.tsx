@@ -3,14 +3,12 @@ import { LoaderCircle, TriangleAlert } from 'lucide-react';
 import { loadAlphaTab } from '@/core/import/alphaTabImport';
 import { exportAlphaTex } from '@/core/import/alphaTexExport';
 import type { Score } from '@/core/music/score';
-import { SongRepository } from '@/core/storage/repositories';
 
 /**
  * Klassische Notenschrift + Tabulatur (Partitur) über den alphaTab-Renderer.
- * Rendert im Hauptthread (kein Worker nötig) und nutzt für importierte Dateien die Originaldatei,
- * sonst einen alphaTex-Export des internen Modells.
+ * Rendert im Hauptthread (kein Worker nötig) aus einem alphaTex-Export des internen Modells.
  */
-export function ScoreView({ score, trackIndex, sourceFileId, zoom = 1 }: { score: Score; trackIndex: number; sourceFileId?: string; zoom?: number }) {
+export function ScoreView({ score, trackIndex, zoom = 1 }: { score: Score; trackIndex: number; zoom?: number }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -55,24 +53,7 @@ export function ScoreView({ score, trackIndex, sourceFileId, zoom = 1 }: { score
         instance.renderFinished.on(() => {
           if (!disposed) setStatus('ready');
         });
-        let rendered = false;
-        if (sourceFileId) {
-          const file = await new SongRepository().getImportFile(sourceFileId);
-          if (file && !disposed) {
-            try {
-              const bytes = new Uint8Array(await file.blob.arrayBuffer());
-              const atScore = alphaTab.importer.ScoreLoader.loadScoreFromBytes(bytes, new alphaTab.Settings());
-              const atTrack = atScore.tracks[trackIndex] ?? atScore.tracks[0];
-              if (atTrack) {
-                instance.renderScore(atScore, [atTrack.index]);
-                rendered = true;
-              }
-            } catch {
-              rendered = false;
-            }
-          }
-        }
-        if (!rendered && !disposed) instance.tex(exportAlphaTex(score, { trackIndex }));
+        if (!disposed) instance.tex(exportAlphaTex(score, { trackIndex }));
       } catch (e) {
         if (disposed) return;
         setError(e instanceof Error ? e.message : String(e));
@@ -87,7 +68,7 @@ export function ScoreView({ score, trackIndex, sourceFileId, zoom = 1 }: { score
         // bereits zerstört
       }
     };
-  }, [score, trackIndex, sourceFileId, zoom]);
+  }, [score, trackIndex, zoom]);
 
   return (
     <div className="relative min-h-40">
