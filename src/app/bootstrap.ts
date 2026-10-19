@@ -1,10 +1,11 @@
+import { loadCalibration } from '@/core/storage/calibration';
 import { loadSettings } from '@/core/storage/settings';
 
 export type BootstrapState = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string };
 
-/** Lädt die Einstellungen aus der lokalen Datenbank. */
+/** Lädt Einstellungen und Kalibrierung aus der lokalen Datenbank. */
 export async function bootstrapApp(): Promise<void> {
-  await loadSettings();
+  await Promise.all([loadSettings(), loadCalibration()]);
 }
 
 export function describeBootstrapError(error: unknown): string {

@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { MetaRecord, SettingsRecord } from './types';
+import type { CalibrationRecord, ClipRecord, MetaRecord, SettingsRecord } from './types';
 
 /**
  * IndexedDB-Datenbank für GuitarCoach v2 (Dexie). Eigener Datenbankname: Daten der v1-App werden nicht übernommen.
@@ -8,12 +8,22 @@ import type { MetaRecord, SettingsRecord } from './types';
 export class GuitarCoachDB extends Dexie {
   settings!: EntityTable<SettingsRecord, 'key'>;
   meta!: EntityTable<MetaRecord, 'key'>;
+  /** Kalibrierung je Gerät (Phase 1). */
+  calibration!: EntityTable<CalibrationRecord, 'deviceKey'>;
+  /** Beschriftete Aufnahmen aus dem Erkennungs-Labor (Phase 1). */
+  clips!: EntityTable<ClipRecord, 'id'>;
 
   constructor(name = 'guitarcoach-v2') {
     super(name);
     this.version(1).stores({
       settings: 'key',
       meta: 'key',
+    });
+    this.version(2).stores({
+      settings: 'key',
+      meta: 'key',
+      calibration: 'deviceKey',
+      clips: 'id, createdAt',
     });
   }
 }
