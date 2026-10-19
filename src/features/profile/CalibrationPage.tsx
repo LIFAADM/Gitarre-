@@ -45,6 +45,8 @@ export function CalibrationPage() {
   const sessionRef = useRef<CalibrationSession | null>(null);
   const clicksScheduledRef = useRef(false);
   const clickTimersRef = useRef<number[]>([]);
+  /** Alle Klicks laufen über diesen Knoten – Trennen stoppt auch bereits geplante Klicks. */
+  const clickBusRef = useRef<GainNode | null>(null);
   const lastUiUpdateRef = useRef(0);
 
   const onFrame = useCallback((frame: AnalysisFrame): void => {
@@ -60,7 +62,19 @@ export function CalibrationPage() {
   const detection = useDetection({ enabled: true, sensitivity: settings.tunerSensitivity, a4Hz: settings.a4Hz, onFrame });
   const { status, error, supported, start, stop, audioContext } = detection;
 
+  const stopClicks = useCallback((): void => {
+    for (const t of clickTimersRef.current) window.clearTimeout(t);
+    clickTimersRef.current = [];
+    try {
+      clickBusRef.current?.disconnect();
+    } catch {
+      // bereits getrennt
+    }
+    clickBusRef.current = null;
+  }, []);
+
   const begin = async (): Promise<void> => {
+    stopClicks();
     sessionRef.current = new CalibrationSession({ clickCount: CLICK_COUNT });
     clicksScheduledRef.current = false;
     setState(null);
@@ -76,11 +90,14 @@ export function CalibrationPage() {
     const session = sessionRef.current;
     if (!ctx || !session) return;
     clicksScheduledRef.current = true;
+    const bus = ctx.createGain();
+    bus.connect(ctx.destination);
+    clickBusRef.current = bus;
     const interval = 60 / CLICK_BPM;
     const first = ctx.currentTime + COUNT_IN_SEC;
     for (let i = 0; i < CLICK_COUNT; i++) {
       const time = first + i * interval;
-      playClick(ctx, time, i === 0, Math.max(0.5, settings.metronomeVolume));
+      playClick(ctx, time, i === 0, Math.max(0.5, settings.metronomeVolume), bus);
       session.addClick(time);
     }
     // Klick-Zähler in der Oberfläche mitlaufen lassen.
@@ -90,12 +107,8 @@ export function CalibrationPage() {
     }
   }, [step, audioContext, settings.metronomeVolume]);
 
-  useEffect(
-    () => () => {
-      for (const t of clickTimersRef.current) window.clearTimeout(t);
-    },
-    [],
-  );
+  // Beim Verlassen der Seite geplante Klicks stoppen.
+  useEffect(() => stopClicks, [stopClicks]);
 
   // Nach dem letzten Schritt Mikrofon freigeben und Ergebnis anzeigen (ereignisgesteuert: Schrittwechsel aus dem Frame-Callback).
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -109,6 +122,7 @@ export function CalibrationPage() {
   const skipStep = (): void => {
     const session = sessionRef.current;
     if (!session) return;
+    if (session.currentStep === 'latenz') stopClicks();
     session.skip();
     setState(session.state());
   };

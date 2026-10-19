@@ -141,3 +141,16 @@ describe('smoothCents', () => {
     expect(smoothCents(Number.NaN, 4)).toBe(4);
   });
 });
+
+describe('PitchTracker – kalibrierter Mindestpegel', () => {
+  it('nimmt mit kalibriertem Gate auch Messungen unter der Empfindlichkeitstabelle an', () => {
+    const tracker = new PitchTracker({ sensitivity: 'normal', gateRms: 0.002, minStableMs: 0 });
+    expect(tracker.gate).toBe(0.002);
+    tracker.push({ frequency: 110, probability: 0.9, rms: 0.005 }, 0);
+    expect(tracker.current(0)?.midi).toBe(45);
+    tracker.setOptions({ gateRms: 0.01 });
+    tracker.reset();
+    tracker.push({ frequency: 110, probability: 0.9, rms: 0.005 }, 10);
+    expect(tracker.current(10)).toBeNull();
+  });
+});

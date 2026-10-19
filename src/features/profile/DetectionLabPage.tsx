@@ -98,12 +98,22 @@ export function DetectionLabPage() {
     }
     chunksRef.current = [];
     try {
-      await saveClip({ label: preset.label, kind: preset.kind, expected: preset.expected, notes: notes.trim(), sampleRate: sr, samples });
+      await saveClip({
+        label: preset.label,
+        kind: preset.kind,
+        expected: preset.expected,
+        notes: notes.trim(),
+        sampleRate: sr,
+        samples,
+        device: deviceKey(sr),
+        appVersion: __APP_VERSION__,
+        calibration: calibration ? { noiseFloorDb: calibration.noiseFloorDb, gateRms: calibration.gateRms, latencyMs: calibration.latencyMs } : null,
+      });
       toast.show(`Aufnahme „${preset.label}“ gespeichert (${formatDuration(total / sr)}).`, 'success');
     } catch (err) {
       toast.show(`Aufnahme konnte nicht gespeichert werden: ${err instanceof Error ? err.message : String(err)}`, 'error');
     }
-  }, [setWorkletRecording, sampleRate, preset, notes, toast]);
+  }, [setWorkletRecording, sampleRate, preset, notes, toast, calibration]);
 
   // Aufnahmedauer anzeigen und bei 30 s automatisch stoppen.
   useEffect(() => {
@@ -132,7 +142,7 @@ export function DetectionLabPage() {
 
   const exportClip = async (clip: ClipRecord): Promise<void> => {
     const stem = clipFileStem(clip);
-    const sidecar = clipSidecar(clip, deviceKey(clip.sampleRate), __APP_VERSION__, calibration ? { noiseFloorDb: calibration.noiseFloorDb, gateRms: calibration.gateRms, latencyMs: calibration.latencyMs } : null);
+    const sidecar = clipSidecar(clip);
     const json = new Blob([JSON.stringify(sidecar, null, 2)], { type: 'application/json' });
     const files = [new File([clip.wav], `${stem}.wav`, { type: 'audio/wav' }), new File([json], `${stem}.json`, { type: 'application/json' })];
     const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };

@@ -52,6 +52,10 @@ export interface ClipRecord {
   createdAt: string;
   sampleRate: number;
   durationSec: number;
+  /** Gerät, App-Version und Kalibrierung zum Aufnahmezeitpunkt. */
+  device: string;
+  appVersion: string;
+  calibration: { noiseFloorDb: number; gateRms: number; latencyMs: number | null } | null;
   /** PCM-16-WAV als Blob. */
   wav: Blob;
 }

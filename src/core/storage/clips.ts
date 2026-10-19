@@ -15,6 +15,16 @@ export interface NewClip {
   notes: string;
   sampleRate: number;
   samples: Float32Array;
+  /** Umgebung zum Aufnahmezeitpunkt – wird mit gespeichert, damit der Export sie nicht aus dem aktuellen Zustand rekonstruieren muss. */
+  device: string;
+  appVersion: string;
+  calibration: ClipCalibrationSnapshot | null;
+}
+
+export interface ClipCalibrationSnapshot {
+  noiseFloorDb: number;
+  gateRms: number;
+  latencyMs: number | null;
 }
 
 export async function saveClip(input: NewClip): Promise<ClipRecord> {
@@ -27,6 +37,9 @@ export async function saveClip(input: NewClip): Promise<ClipRecord> {
     createdAt: new Date().toISOString(),
     sampleRate: input.sampleRate,
     durationSec: input.samples.length / input.sampleRate,
+    device: input.device,
+    appVersion: input.appVersion,
+    calibration: input.calibration,
     wav: new Blob([encodeWav(input.samples, input.sampleRate)], { type: 'audio/wav' }),
   };
   await getDb().clips.add(record);
@@ -41,9 +54,9 @@ export async function deleteClip(id: string): Promise<void> {
   await getDb().clips.delete(id);
 }
 
-/** Dateiname ohne Endung: `2026-10-19-1432-leersaite-a`. */
+/** Dateiname ohne Endung: `2026-10-19-143210-leersaite-a` (sekundengenau, damit schnelle Wiederholungen nicht kollidieren). */
 export function clipFileStem(clip: Pick<ClipRecord, 'label' | 'createdAt'>): string {
-  const date = clip.createdAt.slice(0, 16).replace('T', '-').replace(':', '');
+  const date = clip.createdAt.slice(0, 19).replace('T', '-').replace(/:/g, '');
   const slug = clip.label
     .toLowerCase()
     .replace(/ä/g, 'ae')
@@ -66,11 +79,12 @@ export interface ClipSidecar {
   durationSec: number;
   device: string;
   appVersion: string;
-  calibration: { noiseFloorDb: number; gateRms: number; latencyMs: number | null } | null;
+  calibration: ClipCalibrationSnapshot | null;
 }
 
-/** JSON-Beschriftung zu einer Aufnahme (Benchmark-Format). */
-export function clipSidecar(clip: ClipRecord, device: string, appVersion: string, calibration: ClipSidecar['calibration']): ClipSidecar {
+/** JSON-Beschriftung zu einer Aufnahme (Benchmark-Format) aus den beim Aufnehmen gesicherten Werten. */
+export function clipSidecar(clip: ClipRecord): ClipSidecar {
+  const { device, appVersion, calibration } = clip;
   return {
     version: 1,
     label: clip.label,

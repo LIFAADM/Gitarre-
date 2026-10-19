@@ -111,7 +111,7 @@ export function useDetection(options: UseDetectionOptions): Detection {
   const onFrameRef = useRef(onFrame);
   const onAudioRef = useRef(onAudio);
   const gateRef = useRef(gate);
-  const trackerOptionsRef = useRef({ sensitivity, a4Hz, minStableMs });
+  const trackerOptionsRef = useRef({ sensitivity, a4Hz, minStableMs, gateRms: gate });
 
   const handleFrame = useCallback((frame: AnalysisFrame): void => {
     const tracker = trackerRef.current;
@@ -217,16 +217,13 @@ export function useDetection(options: UseDetectionOptions): Detection {
 
   const audioContext = useCallback((): AudioContext | null => analyserRef.current?.context ?? null, []);
 
-  // Einstellungen im laufenden Betrieb übernehmen.
-  useEffect(() => {
-    trackerOptionsRef.current = { sensitivity, a4Hz, minStableMs };
-    trackerRef.current?.setOptions({ sensitivity, a4Hz, minStableMs });
-  }, [sensitivity, a4Hz, minStableMs]);
-
+  // Einstellungen und Kalibrierung im laufenden Betrieb übernehmen (ein Mindestpegel für Vorprüfung, Tracker und Anzeige).
   useEffect(() => {
     gateRef.current = gate;
+    trackerOptionsRef.current = { sensitivity, a4Hz, minStableMs, gateRms: gate };
+    trackerRef.current?.setOptions({ sensitivity, a4Hz, minStableMs, gateRms: gate });
     analyserRef.current?.setNoiseFloor(calibration?.noiseFloorRms ?? 0);
-  }, [gate, calibration]);
+  }, [sensitivity, a4Hz, minStableMs, gate, calibration]);
 
   useEffect(() => {
     onFrameRef.current = onFrame;
