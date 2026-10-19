@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Guitar, Hand, Pause, Play, Repeat, SkipBack,
 import { Badge, Button, IconButton, Segmented, Sheet, Slider, Toggle, useToast } from '@/components/ui';
 import { outputLatencySeconds, unlockAudio } from '@/core/audio/audioContext';
 import { countWords } from '@/core/speech/phrases';
+import { primeSpeech } from '@/core/speech/speech';
 import { sayNow } from '@/hooks/useSpeech';
 import { TEMPO_FACTORS, type LoopRange } from '@/core/audio/tabPlayer';
 import { formatSeconds } from '@/core/music/durations';
@@ -148,13 +149,15 @@ export function SongPlayer({ score, initialTempoFactor, compact = false }: SongP
   const isPlaying = snapshot.status === 'playing' || snapshot.status === 'counting';
 
   const handlePlayPause = useCallback(async () => {
+    // iOS: Sprachausgabe einmalig aus der Berührung heraus freischalten, sonst bleibt der spätere Einzähler stumm.
+    if (settings.spokenCountIn) primeSpeech();
     await unlockAudio();
     if (isPlaying) player.pause();
     else {
       startedFromBeginning.current = player.getPositionSec() < 0.01;
       player.play();
     }
-  }, [isPlaying, player]);
+  }, [isPlaying, player, settings.spokenCountIn]);
 
   const setTempo = (factor: number): void => {
     player.setTempoFactor(factor);
@@ -423,7 +426,13 @@ export function SongPlayer({ score, initialTempoFactor, compact = false }: SongP
             label="Einzähler"
             description="Ein Takt Metronom vor dem Start (nur wenn das Metronom an ist)."
           />
-          <Toggle checked={settings.spokenCountIn} onChange={(v) => void updateSettings({ spokenCountIn: v })} label="Einzähler mitsprechen" description="„Eins, zwei, drei, vier“ zu den Klicks (Systemstimme)." />
+          <Toggle
+            checked={settings.spokenCountIn}
+            onChange={(v) => {
+              if (v) primeSpeech();
+              void updateSettings({ spokenCountIn: v });
+            }}
+            label="Einzähler mitsprechen" description="„Eins, zwei, drei, vier“ zu den Klicks (Systemstimme)." />
           <Toggle checked={settings.autoScroll} onChange={(v) => void updateSettings({ autoScroll: v })} label="Automatisch scrollen" />
           <Toggle checked={settings.showFingerNumbers} onChange={(v) => void updateSettings({ showFingerNumbers: v })} label="Fingersatz anzeigen" description="Kleine Ziffern über der Tabulatur (1 = Zeigefinger … 4 = kleiner Finger)." />
         </div>

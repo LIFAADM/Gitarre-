@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronRight, FlaskConical, Info, Mic, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Button, Card, PageHeader, PressableCard, Segmented, Sheet, Slider, Toggle } from '@/components/ui';
+import { primeSpeech } from '@/core/speech/speech';
 import { DEFAULT_SETTINGS } from '@/core/storage/settings';
 import { useCalibration } from '@/hooks/useCalibration';
 import { useSettings } from '@/hooks/useSettings';
@@ -103,7 +104,13 @@ export function ProfilePage() {
         <Card>
           <h2 className="text-base font-bold">Wiedergabe</h2>
           <Toggle checked={settings.countIn} onChange={(v) => void update({ countIn: v })} label="Einzähler vor dem Start" description="Ein Takt Metronom, wenn das Metronom eingeschaltet ist." />
-          <Toggle checked={settings.spokenCountIn} onChange={(v) => void update({ spokenCountIn: v })} label="Einzähler mitsprechen" description="„Eins, zwei, drei, vier“ mit der Systemstimme. Standard: aus." />
+          <Toggle
+            checked={settings.spokenCountIn}
+            onChange={(v) => {
+              if (v) primeSpeech();
+              void update({ spokenCountIn: v });
+            }}
+            label="Einzähler mitsprechen" description="„Eins, zwei, drei, vier“ mit der Systemstimme. Standard: aus." />
           <Slider label="Gitarrenklang" value={Math.round(settings.synthVolume * 100)} min={0} max={120} step={5} onChange={(v) => void update({ synthVolume: v / 100 })} format={(v) => `${v} %`} />
           <Slider label="Metronom" value={Math.round(settings.metronomeVolume * 100)} min={0} max={100} step={5} onChange={(v) => void update({ metronomeVolume: v / 100 })} format={(v) => `${v} %`} />
         </Card>
