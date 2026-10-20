@@ -1,6 +1,6 @@
 # PLAN.md – GuitarCoach v2
 
-Stand: 2026-10-19 · Aktuelle Phase: **1 – Audio-Kette**, umgesetzt auf Branch `v2/phase-1-audio-kette` (PR folgt auf PR #8, der noch auf Test und Merge wartet). Nächste Phase: **2 – Erkennung an echten Aufnahmen abstimmen** – dafür braucht es zuerst Aufnahmen vom iPhone (siehe unten).
+Stand: 2026-10-20 · Aktuelle Phase: **2 – Erkennung an echten Aufnahmen abstimmen**. Teil 1 (Benchmark-Gerüst, Schärfung an synthetischen Clips) liegt auf Branch `v2/phase-2-benchmark` (baut auf PR #19 auf). Teil 2 – Abstimmung an echten Aufnahmen – **wartet auf Aufnahmen vom iPhone** in `test-audio/real/`. PR #19 (Phase 1, enthält Phase 0) wartet auf Test und Merge.
 
 Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedback → Sterne → nächster Schritt.
 
@@ -9,8 +9,8 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 | Phase | Inhalt | Status |
 | --- | --- | --- |
 | 0 | Tag `v1-guitarcoach`, CLAUDE.md, PLAN.md, Altlasten entfernen, neues Navigationsgerüst | umgesetzt, PR #8 wartet auf Test und Merge |
-| 1 | Neue Audio-Kette (AudioWorklet), Kalibrierung, Erkennungs-Labor, Stimmgerät umgestellt | umgesetzt, PR wartet auf Test und Merge |
-| 2 | Erkennung an echten Aufnahmen abstimmen, Benchmark in der CI, Zielwerte erreichen | offen |
+| 1 | Neue Audio-Kette (AudioWorklet), Kalibrierung, Erkennungs-Labor, Stimmgerät umgestellt | umgesetzt, PR #19 wartet auf Test und Merge |
+| 2 | Erkennung an echten Aufnahmen abstimmen, Benchmark in der CI, Zielwerte erreichen | Teil 1 umgesetzt (Benchmark in CI, synthetischer Satz erreicht Zielwerte); Teil 2 wartet auf echte Aufnahmen |
 | 3 | Spielansicht mit Bewertung, Modi, Ergebnisbildschirm, Sterne | offen |
 | 4 | Lernpfad Level 1–3 mit Inhalten, Startseite „Nächster Schritt“, Einstufungstest | offen |
 | 5 | Akkorderkennung, Akkordbibliothek, Level 4–5 | offen |
@@ -124,16 +124,33 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 - Prüfungen: Typen, Lint, 184 Unit-Tests in 29 Dateien, Build, 11 E2E-Tests (3 mit simuliertem Mikrofon: Stimmgerät, Kalibrierung, Labor).
 - Offen: echte Aufnahmen vom iPhone; Verhalten auf iOS Safari (Worklet-Start, Hintergrund, Anruf) am Gerät prüfen.
 
-## Testen auf dem iPhone (Phase 1)
+## Testen auf dem iPhone (Phase 1, PR #19)
 1. Nach dem Merge https://lifaadm.github.io/Gitarre-/ öffnen (ggf. App neu laden, Schema v2 wird automatisch erweitert).
 2. Start zeigt „Mikrofon einrichten“ → Jetzt einrichten → Mikrofon erlauben → zwei Sekunden still → über alle Saiten → acht Töne zum Klick. Ergebnis: Rauschen (ruhiger Raum etwa −60 bis −50 dB), Anschlag (etwa −20 bis −6 dB), Verzögerung (etwa 60–150 ms). Speichern → Start zeigt „Gitarre stimmen“.
 3. Stimmgerät: alle sechs Saiten, Referenzton, Pegelanzeige. Mikrofon stoppen, App in den Hintergrund, zurück – kein Absturz, Mikrofon-Anzeige weg.
 4. Profil → Erkennungs-Labor → Mikrofon starten. Leere A-Saite: Tonhöhe A2, Zuverlässigkeit > 80 %, Anschlagzähler zählt jeden Anschlag genau einmal, Balken „A2“ der Zieltonprüfung grün. Vorgabe „Akkord a-Moll“ wählen, Akkord schlagen: alle fünf Balken grün.
 5. Aufnahmen: jede Leersaite dreimal, wiederholter Ton, Tonleiter, die Akkorde, zehn Sekunden Stille. Je Aufnahme Teilen → „In Dateien sichern“; danach in Safari über den Link in der Anleitung nach `test-audio/real/` hochladen. Das ist die Grundlage für Phase 2.
 
-## Phase 2 – Vorschau
-- `scripts/bench-detection.mjs` bzw. `npm run bench:detection`: liest `test-audio/real/*.wav` + `.json`, lässt die `AnalysisEngine` in Node laufen, meldet Trefferquote, Fehlalarme, Timing-Abweichung; schlägt in der CI unter den Zielwerten fehl (Einzeltöne ≥ 95 %, Fehlalarme < 3 %, Anschlag-Timing Median < 30 ms, Akkorde ≥ 90 %).
-- Schwellen (Presence, Flux, Gate), Oktavregeln und Nachklang-Behandlung an den Aufnahmen einstellen.
+## Phase 2 – Erkennung an echten Aufnahmen (Teil 1 umgesetzt)
+
+### Benchmark `npm run bench:detection`
+- Läuft in Node über den Vitest-Runner (`vitest.bench.config.ts`, `bench/detection.bench.ts`): liest `test-audio/real/*.wav` + `*.json` (Format aus dem Erkennungs-Labor) und den deterministischen synthetischen Satz (`src/core/detection/benchmarkSynthetic.ts`, 45 Clips in drei Varianten: normal, leise, lauter Raum).
+- Kern `src/core/detection/benchmark.ts` (reine Logik, getestet): Ereignisse = Anschläge der Engine; je Ereignis Zieltonprüfung (75. Perzentil im Fenster 40–250 ms, Akkorde 80–400 ms) und Tonhöhe (Median) als Gegenprobe. **Treffer**: erwarteter Ton anwesend und Tonhöhe widerspricht nicht. **Fehlalarm**: ein Köderton (±1, ±2 Halbtöne, ±Oktave; nicht erwartet) gilt als anwesend; bei Stille jedes Ereignis. **Timing**: Abstand zu Referenz-Anschlägen aus der Offline-Hüllkurve des ganzen Clips.
+- Zielwerte (`BENCHMARK_TARGETS`): Einzeltöne ≥ 95 %, Fehlalarme < 3 %, Timing-Median < 30 ms, Akkordtöne ≥ 90 %. Der Lauf schlägt fehl, wenn ein vorhandener Satz sie unterschreitet; die CI führt ihn nach den Unit-Tests aus und lädt `bench-results/` (Markdown + JSON) als Artefakt hoch. Ohne echte Aufnahmen warnt der Lauf deutlich – **die Zielwerte gelten erst mit echten Aufnahmen als erreicht.**
+
+### Schärfungen an der Erkennung (aus dem synthetischen Satz)
+- Zieltonprüfung: Teiltöne müssen spektrale Gipfel sein (E_k ≥ Nachbarhalbton). Oktave darunter **und** Duodezime darunter (f0/2, f0/3) werden erkannt, wenn deren Grundton selbst ein Gipfel ist, mindestens halb so stark wie die Energie bei f0, und ein weiterer Teilton da ist. Oktave darüber: Grundton fehlt, 2·f0 trifft (und 3·f0 fehlt oder Grundton < 1/10 des 2. Teiltons). Erwartete tiefere Töne (A2 und A3 im Akkord) sind ausgenommen, Ködertöne nicht (`AnalysisEngine.setTargets(erwartet, köder)`).
+- Lautstärke: Die Zielton-Energie muss ≥ 0,5 % der Fensterleistung tragen (≈ −23 dB), sonst gilt sie als Nachklang.
+- Anschläge: Schwelle Median × 2 mit Sockel 5; `onsetTime` um die Analyseverzögerung (20 ms) korrigiert.
+- Ergebnis synthetischer Satz: Einzeltöne 100 %, Akkordtöne 100 %, Fehlalarme 0,5 %, Timing-Median 4 ms. Bekannte Reste: Tonleiter-Clips 4 Köder-Treffer je 168 Prüfungen (Nachklang überlappender Töne), a-Moll-Akkord meldet im normalen Pegel einen zweiten Anschlag ≈ 0,5 s nach dem Strum.
+
+### Teil 2 – wartet auf Aufnahmen
+- Sobald Aufnahmen in `test-audio/real/` liegen (Upload direkt aus Safari, Anleitung im Labor und in `test-audio/real/README.md`), laufen sie automatisch im Benchmark mit. Dann: Schwellen (`PRESENCE_THRESHOLD`, `MIN_SALIENCE`, Flux-Sockel, Gate), Oktavregeln, Fensterlängen und ggf. die Gewichte der Teiltöne für Nylonsaiten und das iPhone-Mikrofon einstellen, bis alle vier Zielwerte auf dem echten Satz stehen.
+- Mindestumfang für aussagekräftige Werte: jede Leersaite dreimal (6 Clips), wiederholter Ton, Tonleiter, sechs Akkorde, Stille – plus Varianten leise/laut/weiter weg.
+
+## Testen auf dem iPhone (Phase 2, Teil 1)
+1. Nichts Neues in der App – Phase 2 Teil 1 ändert nur die Erkennung und den Benchmark. Die Punkte aus Phase 1 gelten weiter (Kalibrierung, Stimmgerät, Labor).
+2. Aufnahmen aus dem Labor nach `test-audio/real/` hochladen (siehe Anleitung). Die CI führt den Benchmark auf dem Branch aus; das Ergebnis steht im Workflow-Lauf unter „Artifacts → bench-results“ (`detection.md`).
 
 ## Testen auf dem iPhone (Phase 0, erledigt mit PR #8)
 1. https://lifaadm.github.io/Gitarre-/ öffnen, Home-Bildschirm-App einmal löschen und neu hinzufügen (neue Datenbank).
