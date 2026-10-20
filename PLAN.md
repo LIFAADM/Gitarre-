@@ -145,6 +145,9 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 - Nenner der Trefferquote sind Referenz-Anschläge aus der Offline-Hüllkurve (verpasste Anschläge zählen als Fehlschlag, zusätzliche als Fehlalarm). In Folgen ist immer nur ein Ton dran – keine Oktav-Ausnahme über die Folge hinweg; die Tonhöhen-Gegenprobe zählt eine Oktave als anderen Ton.
 - Ergebnis synthetischer Satz: Einzeltöne 100 %, Akkordtöne 100 %, Fehlalarme 0,7 %, Timing-Median 4 ms. Bekannte Reste: Tonleiter-Clips 4 Köder-Treffer je 168 Prüfungen (Nachklang überlappender Töne), a-Moll-Akkord meldet im normalen Pegel einen zusätzlichen Anschlag ≈ 0,5 s nach jedem Strum (zählt als Fehlalarm).
 
+### Teil 2 – Rückmeldungen vom iPhone und Abstimmung
+- Kalibrierung Schritt 3 war zu schnell (80 BPM): jetzt ein Klick alle 1,5 s mit 3 s Vorlauf und deutlicherem Text.
+
 ### Teil 2 – wartet auf Aufnahmen
 - Sobald Aufnahmen in `test-audio/real/` liegen (Upload direkt aus Safari, Anleitung im Labor und in `test-audio/real/README.md`), laufen sie automatisch im Benchmark mit. Dann: Schwellen (`PRESENCE_THRESHOLD`, `MIN_SALIENCE`, Flux-Sockel, Gate), Oktavregeln, Fensterlängen und ggf. die Gewichte der Teiltöne für Nylonsaiten und das iPhone-Mikrofon einstellen, bis alle vier Zielwerte auf dem echten Satz stehen.
 - Mindestumfang für aussagekräftige Werte: jede Leersaite dreimal (6 Clips), wiederholter Ton, Tonleiter, sechs Akkorde, Stille – plus Varianten leise/laut/weiter weg.

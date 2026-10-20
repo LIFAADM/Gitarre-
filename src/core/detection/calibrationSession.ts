@@ -47,7 +47,7 @@ export interface CalibrationState {
   result: CalibrationResultData;
 }
 
-const DEFAULTS = { noiseSeconds: 2, strumSeconds: 1.5, clickCount: 8, latencyTailSeconds: 0.6 } as const;
+const DEFAULTS = { noiseSeconds: 2, strumSeconds: 1.5, clickCount: 8, latencyTailSeconds: 0.8 } as const;
 
 export class CalibrationSession {
   private readonly noiseSeconds: number;
