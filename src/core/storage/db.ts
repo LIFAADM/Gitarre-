@@ -1,52 +1,29 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type {
-  AchievementRecord,
-  AudioSyncRecord,
-  GoalRecord,
-  ImportFileRecord,
-  LessonProgressRecord,
-  MetaRecord,
-  PracticeSessionRecord,
-  SettingsRecord,
-  SongProgressRecord,
-  SongRecord,
-  SongVersionRecord,
-} from './types';
+import type { CalibrationRecord, ClipRecord, MetaRecord, SettingsRecord } from './types';
 
 /**
- * IndexedDB-Datenbank (Dexie). Schema-Versionen werden hier fortgeschrieben;
- * Migrationen erfolgen über `.version(n).stores().upgrade()`.
+ * IndexedDB-Datenbank für GuitarCoach v2 (Dexie). Eigener Datenbankname: Daten der v1-App werden nicht übernommen.
+ * Schema-Versionen werden hier fortgeschrieben; weitere Tabellen (Kalibrierung, Fortschritt) kommen mit ihren Phasen.
  */
 export class GuitarCoachDB extends Dexie {
-  songs!: EntityTable<SongRecord, 'id'>;
-  songVersions!: EntityTable<SongVersionRecord, 'id'>;
-  importFiles!: EntityTable<ImportFileRecord, 'id'>;
-  practiceSessions!: EntityTable<PracticeSessionRecord, 'id'>;
-  lessonProgress!: EntityTable<LessonProgressRecord, 'lessonId'>;
-  songProgress!: EntityTable<SongProgressRecord, 'songId'>;
   settings!: EntityTable<SettingsRecord, 'key'>;
-  achievements!: EntityTable<AchievementRecord, 'id'>;
-  goals!: EntityTable<GoalRecord, 'id'>;
   meta!: EntityTable<MetaRecord, 'key'>;
-  audioSyncs!: EntityTable<AudioSyncRecord, 'id'>;
+  /** Kalibrierung je Gerät (Phase 1). */
+  calibration!: EntityTable<CalibrationRecord, 'deviceKey'>;
+  /** Beschriftete Aufnahmen aus dem Erkennungs-Labor (Phase 1). */
+  clips!: EntityTable<ClipRecord, 'id'>;
 
-  constructor(name = 'guitarcoach') {
+  constructor(name = 'guitarcoach-v2') {
     super(name);
     this.version(1).stores({
-      songs: 'id, title, artist, genre, rightsStatus, isFavorite, lastPlayedAt, updatedAt, isBuiltin',
-      songVersions: 'id, songId, kind, order',
-      importFiles: 'id, songId, importedAt',
-      practiceSessions: '++id, startedAt, kind, refId',
-      lessonProgress: 'lessonId, status, lastPracticedAt',
-      songProgress: 'songId, lastPracticedAt, progressPercent',
       settings: 'key',
-      achievements: 'id, unlockedAt',
-      goals: 'id, group, order, done',
       meta: 'key',
     });
-    // v2: Audiodateien mit manuellen Zeitmarken (Mitspielmodus)
     this.version(2).stores({
-      audioSyncs: 'id, songId, fileId',
+      settings: 'key',
+      meta: 'key',
+      calibration: 'deviceKey',
+      clips: 'id, createdAt',
     });
   }
 }

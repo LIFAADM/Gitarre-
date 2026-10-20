@@ -1,12 +1,11 @@
+import { loadCalibration } from '@/core/storage/calibration';
 import { loadSettings } from '@/core/storage/settings';
-import { seedDatabase } from '@/core/content/seed';
 
 export type BootstrapState = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string };
 
-/** Lädt Einstellungen und legt die eingebauten Inhalte an. */
+/** Lädt Einstellungen und Kalibrierung aus der lokalen Datenbank. */
 export async function bootstrapApp(): Promise<void> {
-  await loadSettings();
-  await seedDatabase();
+  await Promise.all([loadSettings(), loadCalibration()]);
 }
 
 export function describeBootstrapError(error: unknown): string {

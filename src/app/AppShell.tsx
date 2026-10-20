@@ -25,14 +25,12 @@ export function AppShell() {
     window.scrollTo({ top: 0 });
   }, [location.pathname]);
 
-  const kids = location.pathname.startsWith('/kinder');
-
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col safe-x">
-      <main className={kids ? 'flex-1 px-4 safe-bottom' : 'flex-1 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]'}>
+      <main className="flex-1 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]">
         <Outlet />
       </main>
-      {!kids && <BottomNav />}
+      <BottomNav />
     </div>
   );
 }

@@ -3,15 +3,10 @@ import { CircleCheck, Mic, MicOff, Play, RotateCcw, Square, TriangleAlert, Volum
 import { Badge, Button, Card, Segmented, useToast } from '@/components/ui';
 import { unlockAudio } from '@/core/audio/audioContext';
 import { playReferenceTone } from '@/core/audio/guitarSynth';
-import { RMS_GATE, type TrackedPitch } from '@/core/audio/pitch/pitchTracker';
+import type { TrackedPitch } from '@/core/audio/pitch/pitchTracker';
 import { centsBetween, clamp, noteName, octaveOf, type NoteNaming } from '@/core/music/notes';
 import { STANDARD_TUNING, tuningStrings, type TuningString } from '@/core/music/tuning';
-import { TunerAnnouncer } from '@/core/speech/phrases';
-import { TunerCoach, type CoachTip } from '@/core/coach/coach';
-import { CoachTipCard } from '@/features/coach/CoachTipCard';
-import { sayNow } from '@/hooks/useSpeech';
-import { usePitchDetection } from '@/hooks/usePitchDetection';
-import { usePracticeSession } from '@/hooks/usePracticeSession';
+import { useDetection } from '@/hooks/useDetection';
 import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/cn';
 
@@ -48,8 +43,6 @@ export interface TunerReading {
 export interface TunerWidgetProps {
   compact?: boolean;
   onAllStringsTuned?: () => void;
-  /** Übungszeit erfassen, solange das Mikrofon läuft (Standard: ja). */
-  trackPractice?: boolean;
 }
 
 export const TUNER_TEXT = {
@@ -230,7 +223,7 @@ function LevelMeter({ level, gate, active }: { level: number; gate: number; acti
 
 /* --------------------------------- Widget --------------------------------- */
 
-export function TunerWidget({ compact = false, onAllStringsTuned, trackPractice = true }: TunerWidgetProps) {
+export function TunerWidget({ compact = false, onAllStringsTuned }: TunerWidgetProps) {
   const [settings] = useSettings();
   const naming = settings.noteNaming;
   const a4Hz = settings.a4Hz;
@@ -245,9 +238,8 @@ export function TunerWidget({ compact = false, onAllStringsTuned, trackPractice 
   const [tuned, setTuned] = useState<ReadonlySet<number>>(() => new Set<number>());
   const [referencePlaying, setReferencePlaying] = useState<number | null>(null);
 
-  const { pitch, level, status, error, supported, start, stop, pause } = usePitchDetection({ enabled: true, sensitivity, a4Hz });
+  const { pitch, level, status, error, supported, start, stop, pause, gate } = useDetection({ enabled: true, sensitivity, a4Hz });
   const listening = status === 'listening';
-  usePracticeSession('tuner', { active: trackPractice && listening });
 
   const selected = strings.find((s) => s.number === selectedNumber) ?? strings[0]!;
   const reading = useMemo<TunerReading | null>(
@@ -280,40 +272,8 @@ export function TunerWidget({ compact = false, onAllStringsTuned, trackPractice 
     if (tuned.size < strings.length || celebratedRef.current) return;
     celebratedRef.current = true;
     toast.show(TUNER_TEXT.allTuned, 'success');
-    void sayNow('tuner', 'Alle sechs Saiten sind gestimmt. Super gemacht!');
     onAllStringsTuned?.();
   }, [tuned, strings.length, toast, onAllStringsTuned]);
-
-  /* ---- Sprachansage („E-Saite, zu tief“ / „E stimmt“) – erst bei stabiler Messung, nicht doppelt ---- */
-  const [announcer] = useState(() => new TunerAnnouncer());
-  useEffect(() => {
-    if (!listening) {
-      announcer.reset();
-      return;
-    }
-    const phrase = announcer.update(reading ? { name: reading.name, stringNumber: reading.target.number, direction: reading.direction, farOff: reading.farOff } : null, performance.now());
-    if (phrase) void sayNow('tuner', phrase);
-  }, [announcer, reading, listening]);
-
-  /* ---- Coach-Tipps (weit daneben, Überdrehen, zurückrutschende Saite, zu zaghaft gedreht) ---- */
-  const [tunerCoach] = useState(() => new TunerCoach());
-  const [tip, setTip] = useState<CoachTip | null>(null);
-  const coachOn = settings.coachTips;
-  // Reagiert auf neue Messwerte des Mikrofon-Hooks (ereignisgesteuert, daher setState im Effekt beabsichtigt).
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (!listening) {
-      tunerCoach.reset();
-      return;
-    }
-    if (!coachOn) return;
-    const t = tunerCoach.update(reading ? { stringNumber: reading.target.number, name: reading.name, direction: reading.direction, cents: reading.cents, farOff: reading.farOff, nearestName: reading.nearestName } : null, performance.now());
-    if (t) {
-      setTip(t);
-      void sayNow('tips', t.spoken ?? t.text, { interrupt: false });
-    }
-  }, [tunerCoach, reading, listening, coachOn]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   /* ---- Referenzton ---- */
   const stopReferenceRef = useRef<(() => void) | null>(null);
@@ -462,10 +422,9 @@ export function TunerWidget({ compact = false, onAllStringsTuned, trackPractice 
           {statusText}
         </p>
         {hint && <p className="mt-1 text-center text-sm leading-relaxed text-muted">{hint}</p>}
-        <CoachTipCard tip={tip} onDismiss={() => setTip(null)} className="mt-3" />
 
         <div className={compact ? 'mt-3' : 'mt-4'}>
-          <LevelMeter level={level} gate={RMS_GATE[sensitivity]} active={listening} />
+          <LevelMeter level={level} gate={gate} active={listening} />
         </div>
       </Card>
 

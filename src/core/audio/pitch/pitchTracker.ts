@@ -44,6 +44,8 @@ export interface PitchTrackerOptions {
   holdMs?: number;
   /** Mindestzuverlässigkeit einer Messung. Standard 0,5. */
   minProbability?: number;
+  /** Fester Mindestpegel (RMS), z. B. aus der Kalibrierung; ersetzt die Tabelle `RMS_GATE`. */
+  gateRms?: number;
 }
 
 /** Mindestpegel (RMS) je Empfindlichkeit – darunter werden Messungen verworfen. */
@@ -85,6 +87,7 @@ export class PitchTracker {
   private a4Hz: number;
   private holdMs: number;
   private minProbability: number;
+  private gateRms: number | null;
 
   private readonly window: number[] = [];
   private lastValidMs = Number.NEGATIVE_INFINITY;
@@ -101,6 +104,7 @@ export class PitchTracker {
     this.a4Hz = options.a4Hz ?? 440;
     this.holdMs = Math.max(0, options.holdMs ?? DEFAULT_HOLD_MS);
     this.minProbability = options.minProbability ?? DEFAULT_MIN_PROBABILITY;
+    this.gateRms = options.gateRms ?? null;
   }
 
   /** Aktualisiert Optionen im laufenden Betrieb (z. B. nach Änderung der Einstellungen). */
@@ -114,12 +118,13 @@ export class PitchTracker {
     }
     if (patch.holdMs !== undefined) this.holdMs = Math.max(0, patch.holdMs);
     if (patch.minProbability !== undefined) this.minProbability = patch.minProbability;
+    if (patch.gateRms !== undefined) this.gateRms = patch.gateRms;
     while (this.window.length > this.medianWindow) this.window.shift();
   }
 
-  /** Aktueller Mindestpegel (RMS). */
+  /** Aktueller Mindestpegel (RMS): kalibrierter Wert, sonst Tabelle je Empfindlichkeit. */
   get gate(): number {
-    return RMS_GATE[this.sensitivity];
+    return this.gateRms ?? RMS_GATE[this.sensitivity];
   }
 
   /** Pegel der letzten Messung (auch wenn sie verworfen wurde). */

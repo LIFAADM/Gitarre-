@@ -6,8 +6,6 @@
  * höchstens einer alle paar Sekunden, derselbe Tipp pro Sitzung nur einmal. Lob kommt sparsam.
  */
 
-import type { Summary } from '../progress/stats';
-
 export interface CoachTip {
   id: string;
   /** Anzeigetext. */
@@ -240,50 +238,4 @@ export function playthroughTip(tempoFactor: number): CoachTip {
 export function startTip(info: { completedPlaythroughs: number; tempoFactor: number; bars: number }): CoachTip | null {
   if (info.completedPlaythroughs > 0 || info.tempoFactor < 1 || info.bars <= 4) return null;
   return hint('play-start-slow', 'Neues Stück: Fang mit 50 % Tempo an. Langsam und richtig ist schneller gelernt als schnell und falsch.', 'Neues Stück. Fang mit fünfzig Prozent Tempo an.');
-}
-
-/* ------------------------------- Tipp des Tages ------------------------------- */
-
-export const DAILY_TIPS: readonly string[] = [
-  'Stimme die Gitarre vor jedem Üben. Nur so lernt dein Ohr, wie richtig klingt.',
-  'Kurz und täglich schlägt lang und selten: Zehn Minuten jeden Tag bringen mehr als eine Stunde am Wochenende.',
-  'Drücke die Saite dicht hinter dem Bundstäbchen herunter, nicht in der Mitte des Bundes. Das braucht weniger Kraft und klingt sauber.',
-  'Die Fingerkuppen schmerzen in den ersten Wochen. Das ist normal und vergeht, sobald sich Hornhaut bildet. Mach Pausen, aber bleib dran.',
-  'Der Daumen der Greifhand liegt flach hinter dem Hals, etwa auf Höhe des Mittelfingers. Nicht über den Hals greifen.',
-  'Die Fingernägel der Greifhand kurz halten, sonst kannst du die Saiten nicht senkrecht herunterdrücken.',
-  'Übe so langsam, dass du keinen Fehler machst. Fehler, die du oft wiederholst, lernst du mit.',
-  'Vor dem Üben zwei Minuten einspielen: Leere Saiten, dann die Finger einzeln in den ersten Bünden.',
-  'Nimm dich mit dem iPhone auf und hör es dir an. Von außen hört man Unsauberkeiten, die man beim Spielen überhört.',
-  'Setz dich aufrecht auf die vordere Stuhlkante, die Gitarre liegt auf dem linken Bein, der Hals zeigt leicht nach oben.',
-  'Atme ruhig weiter, während du spielst. Angehaltener Atem macht die Hände steif.',
-  'Das Metronom ist dein Übungspartner: Erst mit Klick langsam und gleichmäßig, dann das Tempo in kleinen Schritten erhöhen.',
-  'Ein schwieriger Takt lässt sich mit der Schleife im Player zehnmal hintereinander üben. Das ist effektiver als der ganze Song von vorn.',
-  'Die Anschlaghand bleibt locker. Der Daumen spielt die drei dicken Saiten, Zeige-, Mittel- und Ringfinger die drei dünnen.',
-  'Wenn ein Ton schnarrt, liegt der Finger meist zu weit vom Bundstäbchen weg oder drückt zu schwach.',
-  'Nach dem Üben die Hände ausschütteln und kurz dehnen. Verspannungen werden sonst zur Gewohnheit.',
-  'Schau beim Üben nicht nur auf die Greifhand. Versuche, die Position zu fühlen, der Blick darf zu den Noten gehen.',
-  'Nylonsaiten dehnen sich nach dem Aufziehen tagelang. Dann häufiger nachstimmen, das ist kein Fehler deinerseits.',
-  'Lerne ein Stück rückwärts: zuerst die letzten zwei Takte, dann die zwei davor. So wird das Ende nie der schwache Teil.',
-  'Klingt ein Akkord dumpf, prüfe jede Saite einzeln. So findest du den Finger, der eine Nachbarsaite berührt.',
-  'Mach kleine Ziele pro Tag: einen Takt sauber, eine Lektion fertig. Das motiviert mehr als ein ganzer Song auf einmal.',
-  'Höre dir die Lieder, die du lernst, mehrmals bewusst an. Wer die Melodie im Kopf hat, findet die Töne leichter.',
-  'Lege die Gitarre sichtbar in Reichweite statt in den Koffer. Was man sieht, nimmt man öfter in die Hand.',
-  'Feuchtigkeit und Wärme verändern die Stimmung. Stimme nach, wenn die Gitarre aus einem anderen Raum kommt.',
-];
-
-export interface DailyTipInput {
-  now: number;
-  summary: Summary;
-}
-
-/** Datengetriebener Tipp, sonst der Tipp des Tages (pro Kalendertag gleich). */
-export function dailyTip(input: DailyTipInput): CoachTip {
-  const s = input.summary;
-  if (s.practiceDays >= 3 && s.streak === 0) return { id: 'daily-habit', text: 'Du hattest schon einige Übungstage, zuletzt aber eine Pause. Lieber jeden Tag zehn Minuten als einmal pro Woche eine Stunde: Finger und Gedächtnis lernen über Nacht.', kind: 'hint' };
-  if (s.todayMinutes >= 45) return { id: 'daily-break', text: 'Du hast heute schon viel geübt. Gönn deinen Fingerkuppen eine Pause, Hornhaut braucht Zeit und Konzentration lässt nach 45 Minuten nach.', kind: 'info' };
-  if (s.bestAccuracy !== null && s.bestAccuracy < 60 && s.practiceDays >= 2) return { id: 'daily-slow', text: 'Deine Trefferquote steigt am schnellsten, wenn du das Tempo so weit senkst, dass du fehlerfrei spielst. Erst dann schneller werden.', kind: 'hint' };
-  if (s.streak >= 7) return { id: 'daily-streak', text: `${s.streak} Tage in Folge geübt. Genau so entsteht Fortschritt. Belohne dich heute mit einem Lieblingslied.`, kind: 'praise' };
-  const dayIndex = Math.floor(input.now / 86_400_000);
-  const idx = dayIndex % DAILY_TIPS.length;
-  return { id: `daily-${idx}`, text: DAILY_TIPS[idx]!, kind: 'info' };
 }

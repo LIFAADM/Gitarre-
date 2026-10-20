@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Summary } from '../progress/stats';
-import { DAILY_TIPS, LISTEN_TIPS, ListenCoach, TipGate, TunerCoach, dailyTip, listenResultTip, playthroughTip, startTip } from './coach';
+import { LISTEN_TIPS, ListenCoach, TipGate, TunerCoach, listenResultTip, playthroughTip, startTip } from './coach';
 
 const E6 = [{ string: 6, fret: 0, midi: 40 }];
 const C5 = [{ string: 5, fret: 3, midi: 48 }];
@@ -105,24 +104,5 @@ describe('Player-Tipps', () => {
     expect(startTip({ completedPlaythroughs: 0, tempoFactor: 1, bars: 12 })?.id).toBe('play-start-slow');
     expect(startTip({ completedPlaythroughs: 1, tempoFactor: 1, bars: 12 })).toBeNull();
     expect(startTip({ completedPlaythroughs: 0, tempoFactor: 0.5, bars: 12 })).toBeNull();
-  });
-});
-
-describe('dailyTip', () => {
-  const base: Summary = { totalMinutes: 0, todayMinutes: 0, weekMinutes: 0, streak: 0, practiceDays: 0, lessonsDone: 0, songsCompleted: 0, bestAccuracy: null };
-  it('ist pro Tag stabil und wechselt täglich', () => {
-    const day = 86_400_000;
-    const a = dailyTip({ now: 20_000 * day + 1000, summary: base });
-    const b = dailyTip({ now: 20_000 * day + 50_000_000, summary: base });
-    const c = dailyTip({ now: 20_001 * day + 1000, summary: base });
-    expect(a.id).toBe(b.id);
-    expect(a.id).not.toBe(c.id);
-    expect(DAILY_TIPS).toContain(a.text);
-  });
-  it('bevorzugt Hinweise aus echten Daten', () => {
-    expect(dailyTip({ now: 0, summary: { ...base, practiceDays: 4, streak: 0 } }).id).toBe('daily-habit');
-    expect(dailyTip({ now: 0, summary: { ...base, todayMinutes: 50, streak: 1 } }).id).toBe('daily-break');
-    expect(dailyTip({ now: 0, summary: { ...base, practiceDays: 2, streak: 1, bestAccuracy: 40 } }).id).toBe('daily-slow');
-    expect(dailyTip({ now: 0, summary: { ...base, practiceDays: 7, streak: 7 } }).id).toBe('daily-streak');
   });
 });

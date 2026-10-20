@@ -3,7 +3,6 @@ import { getDb } from './db';
 
 /** Einstellungen der App (klein, werden vollständig geladen). */
 export interface AppSettings {
-  userName: string;
   noteNaming: NoteNaming;
   leftHanded: boolean;
   /** Griffbrett-Darstellung: wie Tab (hohe E oben) oder Blick auf die eigene Gitarre (tiefe E oben). */
@@ -14,46 +13,19 @@ export interface AppSettings {
   tunerToleranceCents: number;
   /** Empfindlichkeit des Stimmgeräts (Mindestpegel). */
   tunerSensitivity: 'niedrig' | 'normal' | 'hoch';
-  /** Toleranz im Spiel-mit-Modus (Cent). */
-  listenToleranceCents: number;
-  /** Mindestdauer für einen stabil erkannten Ton (ms). */
-  listenMinStableMs: number;
   metronomeVolume: number;
   synthVolume: number;
-  dailyGoalMinutes: number;
-  weeklyGoalDays: number;
   tabZoom: number;
   autoScroll: boolean;
+  /** Ein Takt Einzähler vor dem Start (bei eingeschaltetem Metronom). */
   countIn: boolean;
-  micAllowed: boolean;
-  onboardingDone: boolean;
+  /** Einzähler zusätzlich gesprochen („eins, zwei, drei, vier“). Standard: aus. */
+  spokenCountIn: boolean;
   defaultNotationView: 'tab' | 'score';
   hapticFeedback: boolean;
-  /** Sprachbegleitung über die deutsche Systemstimme (offline, nichts verlässt das Gerät). */
-  speechEnabled: boolean;
-  /** Sprechtempo (1 = normal). */
-  speechRate: number;
-  /** Gewünschte Stimme (voiceURI), leer = beste deutsche Stimme automatisch. */
-  speechVoiceURI: string;
-  speechLessons: boolean;
-  speechTuner: boolean;
-  speechListen: boolean;
-  speechCountIn: boolean;
-  speechPlayer: boolean;
-  /** Kopfhörer-/Sperrbildschirm-Steuerung über die Media Session API (experimentell). */
-  headsetControls: boolean;
-  /** Coach-Tipps anzeigen (situationsbezogene Hinweise aus den Messwerten). */
-  coachTips: boolean;
-  /** Coach-Tipps auch vorlesen. */
-  speechTips: boolean;
-  /** Kinder-Modus aktiv: App startet auf der Kinder-Startseite, Verlassen nur über die Elternsperre. */
-  kidsMode: boolean;
-  /** Gesprochene Anleitungen im Kinder-Modus. */
-  speechKids: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  userName: '',
   noteNaming: 'de',
   leftHanded: false,
   fretboardOrientation: 'tab',
@@ -61,32 +33,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   a4Hz: 440,
   tunerToleranceCents: 5,
   tunerSensitivity: 'normal',
-  listenToleranceCents: 30,
-  listenMinStableMs: 120,
   metronomeVolume: 0.7,
   synthVolume: 0.9,
-  dailyGoalMinutes: 20,
-  weeklyGoalDays: 5,
   tabZoom: 1,
   autoScroll: true,
   countIn: true,
-  micAllowed: true,
-  onboardingDone: false,
+  spokenCountIn: false,
   defaultNotationView: 'tab',
   hapticFeedback: true,
-  speechEnabled: true,
-  speechRate: 1,
-  speechVoiceURI: '',
-  speechLessons: true,
-  speechTuner: true,
-  speechListen: true,
-  speechCountIn: true,
-  speechPlayer: true,
-  headsetControls: false,
-  coachTips: true,
-  speechTips: true,
-  kidsMode: false,
-  speechKids: true,
 };
 
 const SETTINGS_KEY = 'app';
@@ -134,13 +88,6 @@ export async function updateSettings(patch: Partial<AppSettings>): Promise<AppSe
     console.warn('Einstellungen konnten nicht gespeichert werden:', error);
   }
   return current;
-}
-
-/** Ersetzt die Einstellungen vollständig (z. B. bei Wiederherstellung einer Sicherung). */
-export async function replaceSettings(settings: Partial<AppSettings>): Promise<void> {
-  current = { ...DEFAULT_SETTINGS, ...settings };
-  emit();
-  await getDb().settings.put({ key: SETTINGS_KEY, value: current });
 }
 
 export function subscribeSettings(listener: Listener): () => void {
