@@ -12,6 +12,8 @@ export interface PluckOptions {
   attackSec?: number;
   /** Grunddämpfung (1/s); höhere Teiltöne klingen schneller ab. Standard 1,6. */
   decay?: number;
+  /** Ausblendzeit am Ende in Sekunden (kein Knacken beim Abschneiden). Standard 0,04. */
+  releaseSec?: number;
 }
 
 export const NYLON_HARMONICS = [1, 0.7, 0.45, 0.3, 0.18, 0.1] as const;
@@ -23,6 +25,7 @@ export function pluck(frequency: number, seconds: number, options: PluckOptions 
   const harmonics = options.harmonics ?? NYLON_HARMONICS;
   const attack = options.attackSec ?? 0.004;
   const decay = options.decay ?? 1.6;
+  const release = Math.round((options.releaseSec ?? 0.04) * sr);
   const n = Math.floor(seconds * sr);
   const out = new Float32Array(n);
   for (let i = 0; i < n; i++) {
@@ -33,7 +36,8 @@ export function pluck(frequency: number, seconds: number, options: PluckOptions 
       if (f >= sr / 2) break;
       v += harmonics[k]! * Math.exp(-t * (decay + k * 1.1)) * Math.sin(2 * Math.PI * f * t);
     }
-    const env = attack > 0 ? Math.min(1, t / attack) : 1;
+    let env = attack > 0 ? Math.min(1, t / attack) : 1;
+    if (release > 0 && i >= n - release) env *= 0.5 - 0.5 * Math.cos((Math.PI * (n - i)) / release);
     out[i] = v * amplitude * env;
   }
   return out;
