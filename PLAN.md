@@ -158,7 +158,7 @@ Der Besitzer hat ein Video einer fremden Lern-App gezeigt: „So will ich das au
 
 - **Querformat.** Die Bahn läuft waagerecht; die Noten kommen von rechts und wandern zur Trefflinie im linken Drittel. Das Gerät liegt quer vor dem Spieler.
 - **Sechs Saitenbahnen** als waagerechte Linien über die volle Breite, hohe E oben (wie Tabulatur). Die Bahn ist unten, ruhig gehaltene Fläche oben (Abschnittsname wie „Refrain“, Streak, Punkte).
-- **Noten als Pillen** auf der jeweiligen Saite: Länge = Dauer, Zahl = Bund (0 = leer), Farbe je Finger der linken Hand (eigene Farbskala, siehe `features/play/lanes.ts`). Sichtbar sind etwa zwei Takte voraus.
+- **Noten als Pillen** auf der jeweiligen Saite: Länge = Dauer, Zahl = Bund (0 = leer), Farbe je Finger der linken Hand (eigene Fingerfarbskala, neu in Phase 3; `features/play/lanes.ts` färbt bisher je Saite und wird dafür ergänzt). Sichtbar sind etwa zwei Takte voraus.
 - **Hüpfender Ball** als Rhythmusführung: Ein Punkt springt in Bögen von Note zu Note und landet genau beim Anschlag auf der Pille. Das zeigt Timing ohne Zählen und ersetzt im Modus „Wartet auf dich“ das Metronom.
 - **Trefflinie** als senkrechte Linie; getroffene Pillen leuchten kurz auf, verfehlte werden grau. Per-Note-Rückmeldung (getroffen/früh/spät/falsch/verpasst) an der Pille, nicht als Text.
 - **Kopfzeile**: links Streak („3×“ + Punkte-Reihe), rechts Punktestand. **Fußzeile**: Pause links, Fortschrittsbalken des Stücks mit Abschnittsmarkierungen, rechts Umschalter „Vorspielen“ (Hand-Symbol = App spielt vor, Mikrofon pausiert).
