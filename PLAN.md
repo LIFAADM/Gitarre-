@@ -152,6 +152,20 @@ Das Prinzip steht in `CLAUDE.md`: Spielen → App hört zu → sofortiges Feedba
 - Sobald Aufnahmen in `test-audio/real/` liegen (Upload direkt aus Safari, Anleitung im Labor und in `test-audio/real/README.md`), laufen sie automatisch im Benchmark mit. Dann: Schwellen (`PRESENCE_THRESHOLD`, `MIN_SALIENCE`, Flux-Sockel, Gate), Oktavregeln, Fensterlängen und ggf. die Gewichte der Teiltöne für Nylonsaiten und das iPhone-Mikrofon einstellen, bis alle vier Zielwerte auf dem echten Satz stehen.
 - Mindestumfang für aussagekräftige Werte: jede Leersaite dreimal (6 Clips), wiederholter Ton, Tonleiter, sechs Akkorde, Stille – plus Varianten leise/laut/weiter weg.
 
+## Phase 3 – Vorgaben für die Spielansicht (aus dem Video vom 2026-10-20)
+
+Der Besitzer hat ein Video einer fremden Lern-App gezeigt: „So will ich das auch haben – leichter verständlich als unseres.“ Festgehalten werden nur die Mechanik und das Lesebild, kein Design, keine Grafiken, keine Texte der fremden App.
+
+- **Querformat.** Die Bahn läuft waagerecht; die Noten kommen von rechts und wandern zur Trefflinie im linken Drittel. Das Gerät liegt quer vor dem Spieler.
+- **Sechs Saitenbahnen** als waagerechte Linien über die volle Breite, hohe E oben (wie Tabulatur). Die Bahn ist unten, ruhig gehaltene Fläche oben (Abschnittsname wie „Refrain“, Streak, Punkte).
+- **Noten als Pillen** auf der jeweiligen Saite: Länge = Dauer, Zahl = Bund (0 = leer), Farbe je Finger der linken Hand (eigene Fingerfarbskala, neu in Phase 3; `features/play/lanes.ts` färbt bisher je Saite und wird dafür ergänzt). Sichtbar sind etwa zwei Takte voraus.
+- **Hüpfender Ball** als Rhythmusführung: Ein Punkt springt in Bögen von Note zu Note und landet genau beim Anschlag auf der Pille. Das zeigt Timing ohne Zählen und ersetzt im Modus „Wartet auf dich“ das Metronom.
+- **Trefflinie** als senkrechte Linie; getroffene Pillen leuchten kurz auf, verfehlte werden grau. Per-Note-Rückmeldung (getroffen/früh/spät/falsch/verpasst) an der Pille, nicht als Text.
+- **Kopfzeile**: links Streak („3×“ + Punkte-Reihe), rechts Punktestand. **Fußzeile**: Pause links, Fortschrittsbalken des Stücks mit Abschnittsmarkierungen, rechts Umschalter „Vorspielen“ (Hand-Symbol = App spielt vor, Mikrofon pausiert).
+- **Ein Bildschirm, eine Hauptaktion.** Tempo, Schleife und Noten+Tab-Ansicht liegen hinter dem Pause-Menü, nicht auf der Spielfläche.
+
+Umsetzung in Phase 3 auf der vorhandenen Grundlage: `features/play/highwayEngine.ts` (Zeitsteuerung, Modi), `NoteHighway.tsx` (wird auf Querformat und Pillen umgebaut), `timeline.ts` (Bewertung), Zieltonprüfung und Anschläge aus `core/detection`.
+
 ## Testen auf dem iPhone (Phase 2, Teil 1)
 1. Nichts Neues in der App – Phase 2 Teil 1 ändert nur die Erkennung und den Benchmark. Die Punkte aus Phase 1 gelten weiter (Kalibrierung, Stimmgerät, Labor).
 2. Aufnahmen aus dem Labor nach `test-audio/real/` hochladen (siehe Anleitung). Die CI führt den Benchmark auf dem Branch aus; das Ergebnis steht im Workflow-Lauf unter „Artifacts → bench-results“ (`detection.md`).
