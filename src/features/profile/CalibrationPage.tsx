@@ -17,15 +17,17 @@ import { cn } from '@/lib/cn';
  */
 
 const CLICK_COUNT = 8;
-const CLICK_BPM = 80;
-const COUNT_IN_SEC = 1.2;
+/** Ein Klick alle 1,5 Sekunden – genug Zeit, nach jedem Ton die Hand neu anzusetzen. */
+const CLICK_BPM = 40;
+/** Vorlauf bis zum ersten Klick, damit die Hand bereit ist. */
+const COUNT_IN_SEC = 3;
 
 type Phase = 'intro' | 'laeuft' | 'fertig';
 
 const STEP_TEXT = {
   stille: { title: 'Schritt 1: Bitte zwei Sekunden Ruhe', text: 'Nicht spielen, nicht sprechen. Die App misst das Grundrauschen des Raums.' },
   anschlag: { title: 'Schritt 2: Einmal kräftig über alle Saiten', text: 'Schlage alle sechs Saiten mit dem Daumen an und lass sie klingen.' },
-  latenz: { title: 'Schritt 3: Zum Klick spielen', text: `Spiele bei jedem Klick einen Ton (z. B. die leere A-Saite). ${CLICK_COUNT} Klicks, dann ist es geschafft.` },
+  latenz: { title: 'Schritt 3: Zum Klick spielen', text: `Gleich kommt alle anderthalb Sekunden ein Klick. Spiele bei jedem Klick einen Ton, am besten die leere A-Saite. ${CLICK_COUNT} Klicks, dann ist es geschafft.` },
   fertig: { title: 'Fertig', text: '' },
 } as const;
 
