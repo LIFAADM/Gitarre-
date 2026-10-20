@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { midiToFrequency } from '@/core/music/notes';
-import { analyseClip, formatReport, probeSet, referenceOnsets, summarize, type BenchmarkClip } from './benchmark';
+import { analyseClip, formatReport, matchReferenceToEvents, mergeOnsets, probeSet, referenceOnsets, summarize, type BenchmarkClip } from './benchmark';
 import { syntheticBenchmarkClips } from './benchmarkSynthetic';
 import { chord, layer, pluck, whiteNoise, add } from './testSignals';
 
@@ -70,6 +70,22 @@ describe('Benchmark-Kern', () => {
     const r2 = analyseClip(makeClip({ kind: 'akkord', expected: am.map((midi) => ({ midi })), samples: akkord }));
     expect(r2.events).toBe(1);
     expect(r2.hits).toBe(5);
+  });
+
+  it('rechnet verpasste und zusätzliche Anschläge gegen die Referenz', () => {
+    expect(mergeOnsets([0.3, 0.32, 0.36, 1.0, 1.2], 0.15)).toEqual([0.3, 1.0, 1.2]);
+    const { matched, extra } = matchReferenceToEvents([0.3, 1.0, 1.7], [{ time: 0.31 }, { time: 1.35 }, { time: 1.72 }]);
+    expect(matched).toEqual([0, null, 2]);
+    expect(extra).toEqual([1]);
+  });
+
+  it('bewertet in einer Folge nur den jeweils erwarteten Ton (keine Oktav-Ausnahme über die Folge hinweg)', () => {
+    // Folge C3 → C4, gespielt wird zweimal C3: der zweite Anschlag darf nicht als C4 zählen.
+    const c3 = () => pluck(midiToFrequency(48), 1, { amplitude: 0.4 });
+    const samples = add(layer([{ at: 0.3, signal: c3() }, { at: 1.3, signal: c3() }], 2.5), whiteNoise(2.5, 0.002, SR, 12));
+    const result = analyseClip(makeClip({ kind: 'folge', expected: [{ midi: 48 }, { midi: 60 }], samples }));
+    expect(result.hits).toBe(1);
+    expect(result.expectedCount).toBe(2);
   });
 
   it('zählt in Stille jedes Ereignis als Fehlalarm', () => {

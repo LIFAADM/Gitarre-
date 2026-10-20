@@ -11,7 +11,9 @@ import { PRESENCE_THRESHOLD } from './presence';
  * Gemessen wird so, wie die Spielansicht fragt: „Ist der erwartete Ton da?“
  *  - Ereignisse = Anschläge aus der Engine; je Ereignis wird im Fenster danach die Zieltonprüfung
  *    (75. Perzentil der Frame-Werte) und die Tonhöhe (Median) ausgewertet.
- *  - Treffer: erwarteter Ton anwesend (≥ Schwelle) und Tonhöhe widerspricht nicht.
+ *  - Treffer: erwarteter Ton anwesend (≥ Schwelle) und Tonhöhe widerspricht nicht. Nenner sind die
+ *    Referenz-Anschläge – ein verpasster Anschlag zählt als Fehlschlag, ein zusätzlicher als Fehlalarm.
+ *  - Folgen: Es ist immer nur ein Ton dran; die übrigen Töne der Folge bekommen keine Oktav-Ausnahme.
  *  - Fehlalarm: ein Köderton (±1, ±2 Halbtöne, ±Oktave; nicht erwartet) gilt als anwesend.
  *    Bei Stille zählt jedes Ereignis als Fehlalarm.
  *  - Timing: Abstand der Engine-Anschläge zu Referenz-Anschlägen, die offline aus der Hüllkurve
@@ -179,10 +181,15 @@ export function probeSet(expected: readonly ExpectedNote[]): { midis: number[]; 
   return { midis: [...expectedMidis, ...[...decoys].sort((a, b) => a - b)], expectedCount: expectedMidis.length };
 }
 
-/** Lässt die Engine über den Clip laufen und fasst Anschläge zu Ereignissen zusammen. `probes` = erwartete Töne, dann Köder. */
-export function extractEvents(clip: BenchmarkClip, probes: readonly number[], expectedCount: number, options: AnalyseOptions = {}): { events: NoteEvent[]; frames: AnalysisFrame[] } {
+/**
+ * Lässt die Engine über den Clip laufen und fasst Anschläge zu Ereignissen zusammen.
+ * `probes` = erwartete Töne, dann Köder. `simultaneousCount` sagt, wie viele der ersten Prüftöne
+ * gleichzeitig erwartet werden (Akkord: alle; Einzelton: einer; Folge: keiner – dort ist immer nur
+ * ein Ton dran, die übrigen Töne der Folge bekommen keine Oktav-Ausnahme).
+ */
+export function extractEvents(clip: BenchmarkClip, probes: readonly number[], simultaneousCount: number, options: AnalyseOptions = {}): { events: NoteEvent[]; frames: AnalysisFrame[] } {
   const engine = new AnalysisEngine({ sampleRate: clip.sampleRate, noiseFloorRms: clip.noiseFloorRms ?? estimateNoiseFloor(clip.samples, clip.sampleRate) });
-  engine.setTargets(probes.slice(0, expectedCount).map((m) => midiToFrequency(m)), probes.slice(expectedCount).map((m) => midiToFrequency(m)));
+  engine.setTargets(probes.slice(0, simultaneousCount).map((m) => midiToFrequency(m)), probes.slice(simultaneousCount).map((m) => midiToFrequency(m)));
   const frames: AnalysisFrame[] = [];
   engine.onFrame = (f) => frames.push(f);
   const block = 128;
@@ -212,22 +219,55 @@ export function extractEvents(clip: BenchmarkClip, probes: readonly number[], ex
   return { events, frames };
 }
 
-/** Ob die gemessene Tonhöhe dem erwarteten Ton widerspricht (klar anderer Ton; Oktaven gelten nicht als Widerspruch, die behandelt die Zieltonprüfung). */
+/** Ob die gemessene Tonhöhe dem erwarteten Ton widerspricht (mehr als 70 Cent daneben – auch eine Oktave zählt als anderer Ton). */
 function pitchContradicts(pitchMidi: number | null, expectedMidi: number): boolean {
   if (pitchMidi === null) return false;
-  const diff = Math.abs(pitchMidi - expectedMidi);
-  if (diff <= 0.7) return false;
-  if (Math.abs(diff - 12) <= 0.7) return false;
-  return true;
+  return Math.abs(pitchMidi - expectedMidi) > 0.7;
+}
+
+/** Fasst Referenz-Anschläge zusammen, die näher als `mergeSec` beieinander liegen (Strum = ein Anschlag). */
+export function mergeOnsets(times: readonly number[], mergeSec: number): number[] {
+  const merged: number[] = [];
+  for (const t of [...times].sort((a, b) => a - b)) {
+    const last = merged[merged.length - 1];
+    if (last === undefined || t - last >= mergeSec) merged.push(t);
+  }
+  return merged;
+}
+
+export interface ReferenceMatch {
+  /** Je Referenz-Anschlag das zugeordnete Ereignis (Index) oder null, wenn keins innerhalb der Toleranz lag. */
+  matched: (number | null)[];
+  /** Ereignisse ohne Referenz-Anschlag (zusätzliche Anschläge der Engine). */
+  extra: number[];
+}
+
+/** Ordnet jedem Referenz-Anschlag das nächste noch freie Ereignis innerhalb von `toleranceSec` zu. */
+export function matchReferenceToEvents(reference: readonly number[], events: readonly { time: number }[], toleranceSec = 0.1): ReferenceMatch {
+  const used = new Set<number>();
+  const matched = reference.map((ref) => {
+    let best: number | null = null;
+    events.forEach((event, index) => {
+      if (used.has(index)) return;
+      const delta = Math.abs(event.time - ref);
+      if (delta <= toleranceSec && (best === null || delta < Math.abs(events[best]!.time - ref))) best = index;
+    });
+    if (best !== null) used.add(best);
+    return best;
+  });
+  return { matched, extra: events.map((_, i) => i).filter((i) => !used.has(i)) };
 }
 
 export function analyseClip(clip: BenchmarkClip, options: AnalyseOptions = {}): ClipResult {
   const threshold = options.presenceThreshold ?? PRESENCE_THRESHOLD;
   const isChord = clip.kind === 'akkord';
   const { midis: probes, expectedCount } = probeSet(clip.expected);
-  const { events } = extractEvents(clip, probes, expectedCount, {
+  const mergeSec = options.mergeSec ?? (isChord ? DEFAULTS.chordMergeSec : DEFAULTS.mergeSec);
+  // Gleichzeitig erwartet: beim Akkord alle Töne, beim Einzelton der eine, bei der Folge keiner.
+  const simultaneousCount = isChord ? expectedCount : clip.kind === 'folge' ? 0 : Math.min(1, expectedCount);
+  const { events } = extractEvents(clip, probes, simultaneousCount, {
     ...options,
-    mergeSec: options.mergeSec ?? (isChord ? DEFAULTS.chordMergeSec : DEFAULTS.mergeSec),
+    mergeSec,
     windowStartSec: options.windowStartSec ?? (isChord ? DEFAULTS.chordWindowStartSec : DEFAULTS.windowStartSec),
     windowEndSec: options.windowEndSec ?? (isChord ? DEFAULTS.chordWindowEndSec : DEFAULTS.windowEndSec),
   });
@@ -236,27 +276,47 @@ export function analyseClip(clip: BenchmarkClip, options: AnalyseOptions = {}): 
   const expectedMidis = probes.slice(0, expectedCount);
   const decoyIndices = probes.map((_, i) => i).filter((i) => i >= expectedCount);
 
+  // Referenz-Anschläge offline – sie bilden den Nenner, damit verpasste Anschläge zählen.
+  const reference = clip.kind === 'stille' ? [] : mergeOnsets(referenceOnsets(clip.samples, clip.sampleRate, clip.noiseFloorRms), mergeSec);
+  const { matched, extra } = matchReferenceToEvents(reference, events);
+  if (reference.length === 0 && events.length > 0 && clip.kind !== 'stille') notes.push('keine Referenz-Anschläge gefunden – Nenner aus erkannten Ereignissen');
+  const anchors: (NoteEvent | null)[] = reference.length > 0 ? matched.map((i) => (i === null ? null : events[i]!)) : events;
+  const missedAttacks = anchors.filter((a) => a === null).length;
+  if (missedAttacks > 0) notes.push(`${missedAttacks} Anschläge nicht erkannt`);
+
   let hits = 0;
   let expectedTotal = 0;
   let falseAlarms = 0;
   let falseAlarmChecks = 0;
 
   const present = (event: NoteEvent, probeIndex: number): boolean => event.presence[probeIndex]! >= threshold;
+  const checkDecoys = (event: NoteEvent): void => {
+    for (const d of decoyIndices) {
+      falseAlarmChecks++;
+      if (present(event, d)) falseAlarms++;
+    }
+  };
+  // Zusätzliche Anschläge ohne Referenz sind Fehlalarme der Anschlagerkennung.
+  const countExtraAttacks = (): void => {
+    if (reference.length === 0) return;
+    falseAlarmChecks += extra.length;
+    falseAlarms += extra.length;
+    if (extra.length > 0) notes.push(`${extra.length} zusätzliche Anschläge ohne Referenz`);
+  };
 
   if (clip.kind === 'stille') {
     falseAlarmChecks = Math.max(1, Math.round(durationSec));
     falseAlarms = events.length;
     if (events.length > 0) notes.push(`${events.length} Anschläge in Stille`);
   } else if (isChord) {
-    expectedTotal = events.length * expectedCount;
-    for (const event of events) {
+    expectedTotal = anchors.length * expectedCount;
+    for (const event of anchors) {
+      if (!event) continue;
       for (let p = 0; p < expectedCount; p++) if (present(event, p)) hits++;
-      for (const d of decoyIndices) {
-        falseAlarmChecks++;
-        if (present(event, d)) falseAlarms++;
-      }
+      checkDecoys(event);
     }
-    if (events.length === 0) notes.push('kein Anschlag erkannt');
+    countExtraAttacks();
+    if (anchors.length === 0) notes.push('kein Anschlag gefunden');
   } else if (clip.kind === 'folge') {
     // Erwartete Töne in Reihenfolge; Ereignisse werden gierig zugeordnet (höchstens ein Ton wird übersprungen).
     const sequence = clip.expected.map((e) => e.midi);
@@ -273,39 +333,30 @@ export function analyseClip(clip: BenchmarkClip, options: AnalyseOptions = {}): 
       } else {
         notes.push(`Ereignis bei ${event.time.toFixed(2)} s passt nicht zu Ton ${sequence[cursor] ?? '–'}`);
       }
-      // Köder: Töne, die weder der aktuelle noch der nächste erwartete Ton sind.
-      for (const d of decoyIndices) {
-        falseAlarmChecks++;
-        if (present(event, d)) falseAlarms++;
-      }
+      checkDecoys(event);
     }
     if (cursor < sequence.length) notes.push(`${sequence.length - cursor} Töne der Folge nicht erkannt`);
+    countExtraAttacks();
   } else {
-    // einzelton / frei: jedes Ereignis soll den erwarteten Ton enthalten.
+    // einzelton / frei: jeder Anschlag soll den erwarteten Ton enthalten.
     const target = expectedMidis[0];
-    expectedTotal = target === undefined ? 0 : events.length;
-    for (const event of events) {
+    expectedTotal = target === undefined ? 0 : anchors.length;
+    for (const event of anchors) {
+      if (!event) continue;
       if (target !== undefined && present(event, 0) && !pitchContradicts(event.pitchMidi, target)) hits++;
       else if (target !== undefined) notes.push(`Ereignis bei ${event.time.toFixed(2)} s: Zielton ${Math.round(event.presence[0]! * 100)} %, Tonhöhe ${event.pitchMidi === null ? '–' : event.pitchMidi.toFixed(1)}`);
-      for (const d of decoyIndices) {
-        falseAlarmChecks++;
-        if (present(event, d)) falseAlarms++;
-      }
+      checkDecoys(event);
     }
-    if (events.length === 0 && target !== undefined) notes.push('kein Anschlag erkannt');
+    countExtraAttacks();
+    if (anchors.length === 0 && target !== undefined) notes.push('kein Anschlag gefunden');
   }
 
-  // Timing gegen die Offline-Referenz.
-  const reference = clip.kind === 'stille' ? [] : referenceOnsets(clip.samples, clip.sampleRate, clip.noiseFloorRms);
+  // Timing gegen die Offline-Referenz (nur zugeordnete Paare).
   const timingDeltasMs: number[] = [];
-  for (const ref of reference) {
-    let best: number | null = null;
-    for (const event of events) {
-      const delta = (event.time - ref) * 1000;
-      if (Math.abs(delta) <= 100 && (best === null || Math.abs(delta) < Math.abs(best))) best = delta;
-    }
-    if (best !== null) timingDeltasMs.push(best);
-  }
+  reference.forEach((ref, i) => {
+    const index = matched[i];
+    if (index !== null && index !== undefined) timingDeltasMs.push((events[index]!.time - ref) * 1000);
+  });
 
   return { id: clip.id, label: clip.label, kind: clip.kind, source: clip.source, durationSec, events: events.length, expectedCount: expectedTotal, hits, falseAlarms, falseAlarmChecks, timingDeltasMs, referenceOnsets: reference.length, notes };
 }
