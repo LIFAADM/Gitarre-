@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench:detection": "vitest run --config vitest.bench.config.ts",
     "e2e": "playwright test",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
     "cap:sync": "npm run build && cap sync",
