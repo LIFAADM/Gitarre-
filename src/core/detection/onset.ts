@@ -2,7 +2,7 @@
  * Anschlagerkennung über Spectral Flux (Zunahme der Energie je Frequenzband zwischen zwei Fenstern).
  *
  * - Halbwellen-gleichgerichtete Differenz der logarithmierten Beträge im Bereich 60 Hz – 5 kHz
- * - adaptive Schwelle: Median der letzten Werte × Faktor + Mindestabstand
+ * - adaptive Schwelle: Median der letzten Werte × Faktor, mindestens ein fester Sockel
  * - Spitzenwahl: ein Schritt Verzögerung, damit das lokale Maximum sicher erkannt wird
  * - Mindestabstand zwischen zwei Anschlägen (Standard 60 ms)
  *
@@ -19,9 +19,9 @@ export interface OnsetDetectorOptions {
   maxHz?: number;
   /** Länge des Schwellenfensters in Schritten. Standard 20 (= 200 ms bei 10 ms). */
   historyLength?: number;
-  /** Faktor über dem Median. Standard 1,6. */
+  /** Faktor über dem Median. Standard 2. */
   thresholdFactor?: number;
-  /** Absoluter Mindestwert des Flux (normierte Einheiten). Standard 3. */
+  /** Absoluter Mindestwert des Flux (normierte Einheiten). Standard 5. */
   thresholdFloor?: number;
   /** Mindestabstand zweier Anschläge in Sekunden. Standard 0,06. */
   minIntervalSec?: number;
@@ -70,8 +70,8 @@ export class OnsetDetector {
     this.gamma = options.gamma ?? 100;
     this.scale = 4 / fftSize;
     this.historyLength = options.historyLength ?? 20;
-    this.thresholdFactor = options.thresholdFactor ?? 1.6;
-    this.thresholdFloor = options.thresholdFloor ?? 3;
+    this.thresholdFactor = options.thresholdFactor ?? 2;
+    this.thresholdFloor = options.thresholdFloor ?? 5;
     this.minIntervalSec = options.minIntervalSec ?? 0.06;
   }
 

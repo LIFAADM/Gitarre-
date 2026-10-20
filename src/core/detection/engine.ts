@@ -49,8 +49,9 @@ export interface AnalysisFrame {
   pitch: PitchReading | null;
   /** Spectral Flux des Schritts. */
   flux: number;
-  /** Ob ein Anschlag erkannt wurde (liegt einen Schritt zurück, siehe `onsetTime`). */
+  /** Ob ein Anschlag erkannt wurde (die Erkennung hinkt dem Anschlag etwas hinterher, siehe `onsetTime`). */
   onset: boolean;
+  /** Geschätzter Beginn des Anschlags (um die Analyseverzögerung korrigiert). */
   onsetTime: number;
   /** Flux relativ zur Schwelle (≥ 1 = Anschlag). */
   onsetStrength: number;
@@ -68,6 +69,11 @@ export const ENGINE_DEFAULTS = {
 
 /** Mindestpegel relativ zum Grundrauschen, ab dem Tonhöhe und Zielton geprüft werden. */
 const GATE_OVER_NOISE = 3;
+/**
+ * Der Flux-Gipfel liegt etwa zwei Schritte nach dem Beginn des Anschlags (der Anschlag muss erst in das
+ * Fenster hineinlaufen). `onsetTime` wird um diese Verzögerung korrigiert (gemessen am synthetischen Satz).
+ */
+export const ONSET_LATENCY_SEC = 0.02;
 /** Absoluter Mindestpegel (RMS), falls keine Kalibrierung vorliegt. */
 const ABSOLUTE_GATE = 0.0015;
 
@@ -89,9 +95,12 @@ export class AnalysisEngine {
   private readonly magnitudes: Float32Array;
   private readonly presenceWindow: Float32Array;
   private readonly presenceWindowSum: number;
+  private readonly presenceWindowSumSquares: number;
   private readonly presenceScratch: Float32Array;
   private readonly onsets: OnsetDetector;
   private targets: number[] = [];
+  /** Anzahl der erwarteten Zieltöne am Anfang von `targets`; der Rest sind Köder (Benchmark). */
+  private expectedCount = 0;
   private index = 0;
 
   onFrame: ((frame: AnalysisFrame) => void) | null = null;
@@ -114,6 +123,9 @@ export class AnalysisEngine {
     this.magnitudes = new Float32Array(this.fft.bins);
     this.presenceWindow = hannWindow(this.presenceSize);
     this.presenceWindowSum = windowSum(this.presenceWindow);
+    let sumSquares = 0;
+    for (let i = 0; i < this.presenceWindow.length; i++) sumSquares += this.presenceWindow[i]! ** 2;
+    this.presenceWindowSumSquares = sumSquares;
     this.presenceScratch = new Float32Array(this.presenceSize);
     this.onsets = new OnsetDetector({ sampleRate: this.sampleRate, fftSize: this.fftSize, hopSec });
   }
@@ -123,9 +135,16 @@ export class AnalysisEngine {
     return Math.max(ABSOLUTE_GATE, this.noiseFloorRms * GATE_OVER_NOISE);
   }
 
-  /** Zieltöne (Grundfrequenzen in Hz) für die erwartungsgeführte Prüfung. */
-  setTargets(hz: readonly number[]): void {
-    this.targets = hz.filter((f) => Number.isFinite(f) && f > 0);
+  /**
+   * Zieltöne (Grundfrequenzen in Hz) für die erwartungsgeführte Prüfung. `decoys` sind zusätzliche
+   * Prüftöne, die nicht erwartet werden (Fehlalarm-Messung im Benchmark); sie erscheinen in
+   * `frame.targets` hinter den erwarteten Tönen und genießen keine Oktav-Ausnahme.
+   */
+  setTargets(hz: readonly number[], decoys: readonly number[] = []): void {
+    const valid = (f: number): boolean => Number.isFinite(f) && f > 0;
+    const expected = hz.filter(valid);
+    this.expectedCount = expected.length;
+    this.targets = [...expected, ...decoys.filter(valid)];
   }
 
   setNoiseFloor(rms: number): void {
@@ -187,9 +206,16 @@ export class AnalysisEngine {
       if (this.targets.length > 0) {
         const presenceInput = history.subarray(history.length - this.presenceSize);
         applyWindow(presenceInput, this.presenceWindow, this.presenceScratch);
-        for (const hz of this.targets) {
-          const lowerOctaveExpected = this.targets.some((other) => Math.abs(1200 * Math.log2(other / (hz / 2))) < 50);
-          targets.push(targetPresence(this.presenceScratch, this.presenceWindowSum, hz, { sampleRate: this.sampleRate, noiseRms: this.noiseFloorRms, lowerOctaveExpected }));
+        // Fensterleistung in Goertzel-Normierung (Sinus mit Amplitude A → A²).
+        let power = 0;
+        for (let i = 0; i < this.presenceScratch.length; i++) power += this.presenceScratch[i]! ** 2;
+        const signalPower = (2 * power) / this.presenceWindowSumSquares;
+        const expected = this.targets.slice(0, this.expectedCount);
+        for (let i = 0; i < this.targets.length; i++) {
+          const hz = this.targets[i]!;
+          // Nur erwartete Töne haben Ausnahmen für erwartete tiefere Töne (A2 und A3 im Akkord); Köder nicht.
+          const otherExpectedHz = i < this.expectedCount ? expected.filter((_, j) => j !== i) : [];
+          targets.push(targetPresence(this.presenceScratch, this.presenceWindowSum, hz, { sampleRate: this.sampleRate, noiseRms: this.noiseFloorRms, otherExpectedHz, signalPower }));
         }
       }
     } else {
@@ -204,7 +230,7 @@ export class AnalysisEngine {
       pitch,
       flux: onset.flux,
       onset: onset.onset,
-      onsetTime: onset.onsetTime,
+      onsetTime: onset.onsetTime - ONSET_LATENCY_SEC,
       onsetStrength: onset.strength,
       targets,
     };

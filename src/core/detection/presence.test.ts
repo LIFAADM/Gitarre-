@@ -10,10 +10,15 @@ const window = hannWindow(N);
 const sum = windowSum(window);
 
 /** Fenster ab `atSec` (Standard: 50 ms nach dem Anschlag, wenn der Ton eingeschwungen ist). */
-function presence(signal: Float32Array, hz: number, atSec = 0.05, noiseRms = 0.001, lowerOctaveExpected = false) {
+let sumSquares = 0;
+for (let i = 0; i < N; i++) sumSquares += window[i]! ** 2;
+
+function presence(signal: Float32Array, hz: number, atSec = 0.05, noiseRms = 0.001, otherExpectedHz: number[] = []) {
   const start = Math.round(atSec * SR);
   const windowed = applyWindow(signal.subarray(start, start + N), window, new Float32Array(N));
-  return targetPresence(windowed, sum, hz, { sampleRate: SR, noiseRms, lowerOctaveExpected });
+  let power = 0;
+  for (let i = 0; i < N; i++) power += windowed[i]! ** 2;
+  return targetPresence(windowed, sum, hz, { sampleRate: SR, noiseRms, otherExpectedHz, signalPower: (2 * power) / sumSquares });
 }
 
 const A2 = midiToFrequency(45);
@@ -53,7 +58,7 @@ describe('targetPresence', () => {
     const am = [45, 52, 57, 60, 64].map((m) => midiToFrequency(m));
     const signal = chord(am, 0.8);
     // A3 hat A2 als erwartete untere Oktave im Akkord – kein Oktavfehler.
-    for (const hz of am) expect(presence(signal, hz, 0.12, 0.001, hz === A3).score).toBeGreaterThanOrEqual(PRESENCE_THRESHOLD);
+    for (const hz of am) expect(presence(signal, hz, 0.12, 0.001, am.filter((o) => o !== hz)).score).toBeGreaterThanOrEqual(PRESENCE_THRESHOLD);
     // F#3 (66) und D#4 (63) gehören nicht dazu.
     expect(presence(signal, midiToFrequency(54), 0.12).score).toBeLessThan(PRESENCE_THRESHOLD);
     expect(presence(signal, midiToFrequency(63), 0.12).score).toBeLessThan(PRESENCE_THRESHOLD);
@@ -67,6 +72,21 @@ describe('targetPresence', () => {
     for (let i = 0; i < second.length && offset + i < signal.length; i++) signal[offset + i]! += second[i]!;
     expect(presence(signal, midiToFrequency(50), 0.66).score).toBeGreaterThanOrEqual(0.9);
     expect(presence(signal, A2, 0.66).score).toBeGreaterThan(0); // klingt noch nach – erwartungsgeführt ist das in Ordnung
+    // Die Oktave über dem Nachklang (A3) darf nicht als gespielt gelten.
+    expect(presence(signal, A3, 0.66).score).toBeLessThan(PRESENCE_THRESHOLD);
+  });
+
+  it('verwirft Duodezime und leisen Nachklang', () => {
+    // C3 gespielt: G4 (Duodezime, 3. Teilton) ist nicht „da“.
+    const c3 = pluck(midiToFrequency(48), 0.5);
+    expect(presence(c3, midiToFrequency(67)).score).toBeLessThan(PRESENCE_THRESHOLD);
+    // E4 im a-Moll-Akkord ist erwartet und bleibt trotz A2 (dessen 3. Teilton 330 Hz ist) ein Treffer.
+    const am = [45, 52, 57, 60, 64].map((m) => midiToFrequency(m));
+    const signal = chord(am, 0.8);
+    expect(presence(signal, midiToFrequency(64), 0.12, 0.001, am.slice(0, 4)).score).toBeGreaterThanOrEqual(PRESENCE_THRESHOLD);
+    // Leiser Nachklang (−30 dB) neben einem lauten anderen Ton zählt nicht.
+    const quiet = add(pluck(A2, 1, { amplitude: 0.01 }), pluck(midiToFrequency(50), 1, { amplitude: 0.5 }));
+    expect(presence(quiet, A2, 0.1).score).toBeLessThan(PRESENCE_THRESHOLD);
   });
 
   it('liefert bei Rauschen und Stille keinen Treffer', () => {

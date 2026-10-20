@@ -9,12 +9,14 @@ import { goertzelPower, noisePowerHann } from './goertzel';
  *
  * Für jeden Teilton k (1–5) wird verglichen:
  *  - E_k: Energie bei k·f0 (Goertzel auf dem Hann-gefensterten Fenster)
- *  - N_k: Energie bei k·f0 einen Halbton tiefer/höher (Nachbarn) – der Teilton muss näher am Ziel liegen
+ *  - N_k: Energie bei k·f0 einen Halbton tiefer/höher (Nachbarn) – der Teilton muss ein Gipfel sein (E_k ≥ N_k)
  *  - Untergrenze: Rauschen (aus der Kalibrierung) und der Hintergrund zwischen den Teiltönen
  * Oktavfehler:
- *  - „tiefer“: Energie bei f0/2 und 1,5·f0 (ungerade Teiltöne der unteren Oktave) → gespielt wurde die Oktave darunter;
- *    beide müssen vorhanden sein, damit eine mitklingende Quinte (nur 1,5·f0) nicht als Oktavfehler zählt
- *  - „höher“: nur gerade Teiltöne treffen (2·f0, 4·f0), Grundton und 3·f0 fehlen → gespielt wurde die Oktave darüber
+ *  - „tiefer“: ein tieferer Ton (Oktave f0/2 oder Duodezime f0/3) liefert mit seinem Teilton die Energie bei f0;
+ *    erkennbar am starken Grundton des tieferen Tons plus einem weiteren seiner Teiltöne (1,5·f0 bzw. 2·f0/3)
+ *  - „höher“: Grundton fehlt, 2·f0 trifft → gespielt wurde die Oktave darüber
+ *  - erwartete Töne an diesen Stellen (Akkord mit A2 und A3) sind kein Fehler
+ * Lautstärke: Die Teilton-Energie muss einen Mindestanteil der Fensterleistung tragen (Nachklang zählt nicht).
  */
 
 export type OctaveIssue = 'keine' | 'tiefer' | 'hoeher';
@@ -36,8 +38,16 @@ export interface PresenceOptions {
   noiseRms?: number;
   /** Anzahl der geprüften Teiltöne (1–6). Standard 5. */
   harmonics?: number;
-  /** Die Oktave unter dem Ziel wird selbst erwartet (z. B. Akkord mit A2 und A3) – dann ist sie kein Oktavfehler. */
-  lowerOctaveExpected?: boolean;
+  /**
+   * Weitere erwartete Töne (Hz), z. B. die übrigen Akkordtöne. Liegt einer bei f0/2 oder f0/3, ist
+   * dessen Energie kein Oktav- bzw. Duodezimfehler (A2 und A3 im a-Moll-Akkord).
+   */
+  otherExpectedHz?: readonly number[];
+  /**
+   * Leistung des ganzen Fensters (Amplitude²-Äquivalent, gleiche Normierung wie Goertzel). Der Zielton
+   * muss einen Mindestanteil davon tragen – ein leiser Nachklang zählt nicht als „gespielt“.
+   */
+  signalPower?: number;
 }
 
 /** Gewichte der Teiltöne 1–6 (Grundton am wichtigsten, hohe Teiltöne bei Nylon leise). */
@@ -60,6 +70,9 @@ function lowerMedian(values: number[]): number {
 
 /** Ab diesem Wert gilt ein Zielton als vorhanden (Phase 2 passt das anhand echter Aufnahmen an). */
 export const PRESENCE_THRESHOLD = 0.5;
+/** Mindestanteil der Zielton-Energie an der Fensterleistung (≈ −23 dB), sonst gilt der Ton als Nachklang. */
+export const MIN_SALIENCE = 0.005;
+const SEMITONE_CENTS = 50;
 
 /**
  * Prüft, ob der Ton mit Grundfrequenz `hz` im (bereits Hann-gefensterten) Puffer vorhanden ist.
@@ -94,7 +107,7 @@ export function targetPresence(windowed: Float32Array, windowSum: number, hz: nu
     const w = HARMONIC_WEIGHTS[i]!;
     weightSum += w;
     const e = energies[i]!;
-    if (e > floor && e >= 0.9 * neighbours[i]!) {
+    if (e > floor && e >= neighbours[i]!) {
       matched |= 1 << i;
       score += w;
       energy += e;
@@ -105,18 +118,33 @@ export function targetPresence(windowed: Float32Array, windowSum: number, hz: nu
   let octave: OctaveIssue = 'keine';
   const e1 = energies[0]!;
   const e2 = energies[1] ?? 0;
-  // Untere Oktave gespielt? Dann liegen deren ungerade Teiltöne bei 0,5·f0 UND 1,5·f0.
-  // Beide müssen da sein – eine Quinte über dem Ziel (nur 1,5·f0) darf nicht als Oktavfehler gelten.
-  const subFundamental = at(hz / 2);
-  const subThird = background[0] ?? 0;
-  const sub = Math.min(subFundamental, subThird) * 2;
-  if (!options.lowerOctaveExpected && subFundamental > noiseFloor && subThird > noiseFloor && sub > 0.35 * (e1 + e2)) {
-    octave = 'tiefer';
-    score *= 0.3;
-  } else if (score > 0 && (matched & 0b101) === 0 && (matched & 0b010) !== 0) {
-    // Nur gerade Teiltöne – vermutlich die Oktave darüber.
+  const expectedNear = (f: number): boolean => (options.otherExpectedHz ?? []).some((other) => Math.abs(1200 * Math.log2(other / f)) < SEMITONE_CENTS);
+
+  // Tieferer Ton gespielt, dessen Teilton auf f0 fällt: Oktave darunter (f0/2) oder Duodezime darunter (f0/3).
+  // Kennzeichen: dessen Grundton ist mindestens halb so stark wie unsere „Grundton“-Energie, und ein weiterer
+  // Teilton von ihm (1,5·f0 bzw. 2·f0/3) ist da. Erwartete Töne an dieser Stelle sind kein Fehler.
+  for (const divisor of [2, 3] as const) {
+    const baseHz = hz / divisor;
+    if (expectedNear(baseHz)) continue;
+    const base = at(baseHz);
+    // Der tiefere Grundton muss selbst ein Gipfel sein – sonst ist es nur Leckenergie eines Nachbarhalbtons
+    // (bei tiefen Frequenzen liegen Halbtöne innerhalb der Hauptkeule des Fensters).
+    const basePeak = base >= at(baseHz / SEMITONE) && base >= at(baseHz * SEMITONE);
+    const partner = divisor === 2 ? (background[0] ?? 0) : at((2 * hz) / 3);
+    if (basePeak && base > floor && base > 0.5 * e1 && partner > floor) {
+      octave = 'tiefer';
+      score *= 0.3;
+      break;
+    }
+  }
+  // Oktave darüber gespielt: Grundton fehlt, der 2. Teilton ist da – und entweder fehlt auch der 3. Teilton
+  // oder der Grundton ist gegenüber dem 2. Teilton verschwindend (bei echten tiefen Tönen ist er höchstens schwächer).
+  if (octave === 'keine' && (matched & 0b001) === 0 && (matched & 0b010) !== 0 && ((matched & 0b100) === 0 || e1 < e2 / 10)) {
     octave = 'hoeher';
     score *= 0.4;
   }
+  // Zu leise im Verhältnis zum Gesamtsignal: Nachklang oder Übersprechen, nicht der gespielte Ton.
+  if (options.signalPower !== undefined && options.signalPower > 0 && energy < MIN_SALIENCE * options.signalPower) score = Math.min(score, 0.25);
+
   return { hz, score, matched, energy, octave };
 }

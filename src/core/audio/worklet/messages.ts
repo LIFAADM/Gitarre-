@@ -2,7 +2,7 @@ import type { AnalysisFrame } from '@/core/detection/engine';
 
 /** Nachrichten Main-Thread → Worklet. */
 export type ToWorkletMessage =
-  | { type: 'targets'; hz: number[] }
+  | { type: 'targets'; hz: number[]; decoys?: number[] }
   | { type: 'noiseFloor'; rms: number }
   | { type: 'recording'; enabled: boolean }
   | { type: 'reset' }

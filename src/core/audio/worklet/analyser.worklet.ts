@@ -35,7 +35,7 @@ class GuitarCoachAnalyser extends AudioWorkletProcessor {
   private handle(message: ToWorkletMessage): void {
     switch (message.type) {
       case 'targets':
-        this.engine.setTargets(message.hz);
+        this.engine.setTargets(message.hz, message.decoys ?? []);
         break;
       case 'noiseFloor':
         this.engine.setNoiseFloor(message.rms);
